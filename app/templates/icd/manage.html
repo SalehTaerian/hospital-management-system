@@ -1,0 +1,695 @@
+{% extends "base.html" %}
+
+{% block title %}ICD Code Management{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0"><i class="bi bi-code-square"></i> ICD Code Management</h4>
+    </div>
+    <div class="card-body">
+        <!-- Tabs -->
+        <ul class="nav nav-tabs" id="icdTabs" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" id="icd-tab" data-bs-toggle="tab" data-bs-target="#icd" type="button">
+                    <i class="bi bi-file-medical"></i> ICD Codes
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="icdm-tab" data-bs-toggle="tab" data-bs-target="#icdm" type="button">
+                    <i class="bi bi-capsule"></i> Medicines (ICDM)
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="icdt-tab" data-bs-toggle="tab" data-bs-target="#icdt" type="button">
+                    <i class="bi bi-flask"></i> Tests (ICDT)
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="icds-tab" data-bs-toggle="tab" data-bs-target="#icds" type="button">
+                    <i class="bi bi-scissors"></i> Surgeries (ICDS)
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content pt-3">
+            <!-- ICD Tab -->
+            <div class="tab-pane fade show active" id="icd">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5>ICD Codes (Diseases)</h5>
+                    <div>
+                        <input type="text" class="form-control search-input d-inline-block" data-type="icd"
+                            placeholder="Search..." style="width:200px;">
+                        <button class="btn btn-primary btn-add" data-type="icd">
+                            <i class="bi bi-plus-circle"></i> Add ICD
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped" id="icd-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Code</th>
+                                <th>Disease Name</th>
+                                <th>Type</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" class="text-center">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ICDM Tab -->
+            <div class="tab-pane fade" id="icdm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5>Medicine Codes (ICDM)</h5>
+                    <div>
+                        <input type="text" class="form-control search-input d-inline-block" data-type="icdm"
+                            placeholder="Search..." style="width:200px;">
+                        <button class="btn btn-success btn-add" data-type="icdm">
+                            <i class="bi bi-plus-circle"></i> Add Medicine
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped" id="icdm-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Medicine Name</th>
+                                <th>Type</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" class="text-center">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ICDT Tab -->
+            <div class="tab-pane fade" id="icdt">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5>Test Codes (ICDT)</h5>
+                    <div>
+                        <input type="text" class="form-control search-input d-inline-block" data-type="icdt"
+                            placeholder="Search..." style="width:200px;">
+                        <button class="btn btn-info btn-add" data-type="icdt">
+                            <i class="bi bi-plus-circle"></i> Add Test
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped" id="icdt-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Test Name</th>
+                                <th>Cost</th>
+                                <th>Type</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" class="text-center">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ICDS Tab -->
+            <div class="tab-pane fade" id="icds">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5>Surgery Codes (ICDS)</h5>
+                    <div>
+                        <input type="text" class="form-control search-input d-inline-block" data-type="icds"
+                            placeholder="Search..." style="width:200px;">
+                        <button class="btn btn-warning btn-add" data-type="icds">
+                            <i class="bi bi-plus-circle"></i> Add Surgery
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped" id="icds-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Surgery Name</th>
+                                <th>Cost</th>
+                                <th>Type</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" class="text-center">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals -->
+<div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addModalLabel">Add New Code</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addForm">
+                <div class="modal-body">
+                    <div class="mb-3 field-code">
+                        <label class="form-label">Code</label>
+                        <input type="text" class="form-control" id="add_code" placeholder="Enter code...">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-control" id="add_name" placeholder="Enter name...">
+                    </div>
+                    <div class="mb-3 field-icdm">
+                        <label class="form-label">Related ICD Code</label>
+                        <select class="form-control" id="add_icd_id">
+                            <option value="">Select ICD Code...</option>
+                        </select>
+                    </div>
+                    <div class="mb-3 field-cost">
+                        <label class="form-label">Cost</label>
+                        <input type="number" class="form-control" id="add_cost" placeholder="0.00" step="0.01">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editModalLabel">Edit Code</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editForm">
+                <div class="modal-body">
+                    <input type="hidden" id="edit_id">
+                    <div class="mb-3 field-code">
+                        <label class="form-label">Code</label>
+                        <input type="text" class="form-control" id="edit_code" placeholder="Enter code...">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-control" id="edit_name" placeholder="Enter name...">
+                    </div>
+                    <div class="mb-3 field-icdm">
+                        <label class="form-label">Related ICD Code</label>
+                        <select class="form-control" id="edit_icd_id">
+                            <option value="">Select ICD Code...</option>
+                        </select>
+                    </div>
+                    <div class="mb-3 field-cost">
+                        <label class="form-label">Cost</label>
+                        <input type="number" class="form-control" id="edit_cost" placeholder="0.00" step="0.01">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="deleteForm">
+                <div class="modal-body">
+                    <p id="deleteMessage"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function () {
+        // Hide all type-specific fields initially
+        $('.field-code, .field-icdm, .field-cost').hide();
+
+        // Tab click - load data
+        $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+            var target = $(e.target).attr('data-bs-target');
+            var type = target.replace('#', '');
+            loadData(type);
+        });
+
+        // Load initial data
+        loadData('icd');
+
+        // ==================== ADD BUTTON HANDLER (FIXED) ====================
+        $(document).on('click', '.btn-add', function () {
+            var type = $(this).data('type');
+            console.log('📌 Add button clicked for type:', type);
+
+            // IMPORTANT: Set the form's data-type BEFORE showing the modal
+            $('#addForm').attr('data-type', type);
+            $('#addModalLabel').text('Add ' + getTypeLabel(type));
+
+            // Reset form
+            $('#addForm')[0].reset();
+
+            // Hide all fields
+            $('.field-code, .field-icdm, .field-cost').hide();
+
+            // Show correct fields
+            if (type === 'icd') {
+                $('.field-code').show();
+                $('#add_name').attr('placeholder', 'Enter disease name...');
+            } else if (type === 'icdm') {
+                $('.field-icdm').show();
+                $('#add_name').attr('placeholder', 'Enter medicine name...');
+                loadIcdDropdown('add_icd_id');
+            } else if (type === 'icdt') {
+                $('.field-cost').show();
+                $('#add_name').attr('placeholder', 'Enter test name...');
+                $('#add_cost').val('');
+            } else if (type === 'icds') {
+                $('.field-cost').show();
+                $('#add_name').attr('placeholder', 'Enter surgery name...');
+                $('#add_cost').val('');
+            }
+
+            $('#addModal').modal('show');
+        });
+
+        // ==================== EDIT BUTTON HANDLER (FIXED) ====================
+        $(document).on('click', '.btn-edit', function () {
+            var id = $(this).data('id');
+            var type = $(this).data('type');
+            console.log('📌 Edit button clicked for type:', type, 'id:', id);
+
+            // IMPORTANT: Set the form's data-type BEFORE loading data
+            $('#editForm').attr('data-type', type);
+            $('#editForm').attr('data-id', id);
+
+            $.ajax({
+                url: `/icd/api/${type}/${id}`,
+                method: 'GET',
+                success: function (response) {
+                    if (response.success) {
+                        var data = response.data;
+                        console.log('📌 Loaded data:', data);
+
+                        $('#editModalLabel').text('Edit ' + getTypeLabel(type));
+                        $('#edit_id').val(data.id);
+                        $('#edit_name').val(data.name || '');
+
+                        // Hide all fields
+                        $('.field-code, .field-icdm, .field-cost').hide();
+
+                        if (type === 'icd') {
+                            $('.field-code').show();
+                            $('#edit_code').val(data.code || '');
+                        }
+
+                        if (type === 'icdm') {
+                            $('.field-icdm').show();
+                            $('#edit_icd_id').val(data.icd_id || '');
+                            loadIcdDropdown('edit_icd_id');
+                        }
+
+                        if (type === 'icdt' || type === 'icds') {
+                            $('.field-cost').show();
+                            $('#edit_cost').val(data.cost || 0);
+                        }
+
+                        $('#editModal').modal('show');
+                    }
+                },
+                error: function (xhr) {
+                    console.error('❌ Failed to load data:', xhr);
+                    alert('Failed to load data for editing');
+                }
+            });
+        });
+
+        // Delete button click
+        $(document).on('click', '.btn-delete', function () {
+            var id = $(this).data('id');
+            var type = $(this).data('type');
+            var name = $(this).data('name');
+            showDeleteModal(type, id, name);
+        });
+
+        // Search
+        $(document).on('keyup', '.search-input', function () {
+            var type = $(this).data('type');
+            var search = $(this).val();
+            loadData(type, search);
+        });
+
+        // ==================== ADD FORM SUBMISSION (FIXED) ====================
+        $('#addForm').on('submit', function (e) {
+            e.preventDefault();
+
+            // Get the type from the form's data attribute
+            var type = $(this).attr('data-type');
+            console.log('📌 Add form submitted for type:', type);
+
+            // Collect data
+            var data = {
+                name: $('#add_name').val() || ''
+            };
+
+            if (type === 'icd') {
+                data.code = $('#add_code').val() || '';
+            }
+
+            if (type === 'icdm') {
+                data.icd_id = $('#add_icd_id').val() || '';
+            }
+
+            if (type === 'icdt' || type === 'icds') {
+                data.cost = $('#add_cost').val() || 0;
+            }
+
+            console.log('📌 Collected data:', data);
+            console.log('📌 Type being sent:', type);
+
+            // Submit with the correct type
+            submitForm(type, 'add', data);
+        });
+
+        // ==================== EDIT FORM SUBMISSION (FIXED) ====================
+        $('#editForm').on('submit', function (e) {
+            e.preventDefault();
+
+            // Get the type from the form's data attribute
+            var type = $(this).attr('data-type');
+            var id = $(this).attr('data-id');
+            console.log('📌 Edit form submitted for type:', type, 'id:', id);
+
+            // Collect data
+            var data = {
+                name: $('#edit_name').val() || ''
+            };
+
+            if (type === 'icd') {
+                data.code = $('#edit_code').val() || '';
+            }
+
+            if (type === 'icdm') {
+                data.icd_id = $('#edit_icd_id').val() || '';
+            }
+
+            if (type === 'icdt' || type === 'icds') {
+                data.cost = $('#edit_cost').val() || 0;
+            }
+
+            console.log('📌 Collected data:', data);
+            console.log('📌 Type being sent:', type);
+
+            // Submit with the correct type
+            submitForm(type, 'edit', data, id);
+        });
+
+        // Delete form submit
+        $('#deleteForm').on('submit', function (e) {
+            e.preventDefault();
+            var type = $(this).data('type');
+            var id = $(this).data('id');
+
+            $.ajax({
+                url: `/icd/api/${type}/${id}`,
+                method: 'DELETE',
+                success: function () {
+                    $('#deleteModal').modal('hide');
+                    loadData(type);
+                },
+                error: function (xhr) {
+                    $('#deleteModal').modal('hide');
+                    alert('Error: ' + xhr.statusText);
+                }
+            });
+        });
+    });
+
+    // ==================== LOAD DATA ====================
+    function loadData(type, search = '') {
+        var url = `/icd/api/${type}?page=1&per_page=100`;
+        if (search) url += `&search=${search}`;
+
+        $.ajax({
+            url: url,
+            method: 'GET',
+            success: function (response) {
+                if (response.success) {
+                    renderTable(type, response.data);
+                }
+            },
+            error: function () {
+                alert('Failed to load data');
+            }
+        });
+    }
+
+    // ==================== RENDER TABLE ====================
+    function renderTable(type, data) {
+        var tbody = $(`#${type}-table tbody`);
+        tbody.empty();
+
+        if (!data || data.length === 0) {
+            tbody.html('<tr><td colspan="5" class="text-center">No records found</td></tr>');
+            return;
+        }
+
+        var typeLabels = { 'icd': 'ICD', 'icdm': 'Medicine', 'icdt': 'Test', 'icds': 'Surgery' };
+
+        $.each(data, function (index, item) {
+            var row = '<tr>';
+
+            // Column 1: #
+            row += `<td>${index + 1}</td>`;
+
+            if (type === 'icd') {
+                // ICD: #, Code, Disease Name, Type, Actions
+                row += `<td><strong>${item.code || 'N/A'}</strong></td>`;
+                row += `<td>${item.name || ''}</td>`;
+            } else if (type === 'icdm') {
+                // ICDM: #, Medicine Name, Related ICD, Type, Actions
+                row += `<td><strong>${item.name || 'N/A'}</strong></td>`;
+                // NO extra column here!
+            } else if (type === 'icdt' || type === 'icds') {
+                // ICDT/ICDS: #, Name, Cost, Type, Actions
+                row += `<td><strong>${item.name || 'N/A'}</strong></td>`;
+                row += `<td>$${parseFloat(item.cost || 0).toFixed(2)}</td>`;
+            }
+
+            // Column 4: Type Badge (or Column 3 for ICDM)
+            row += `<td><span class="badge bg-info">${typeLabels[type]}</span></td>`;
+
+            // Column 5: Actions (or Column 4 for ICDM)
+            row += `
+            <td>
+                <button class="btn btn-sm btn-primary btn-edit" 
+                    data-id="${item.id}" 
+                    data-type="${type}"
+                    data-name="${item.name || ''}"
+                    data-code="${item.code || ''}"
+                    data-icd-id="${item.icd_id || ''}"
+                    data-cost="${item.cost || 0}">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-danger btn-delete" 
+                    data-id="${item.id}" 
+                    data-type="${type}"
+                    data-name="${item.name || item.code || ''}">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+
+            row += '</tr>';
+            tbody.append(row);
+        });
+    }
+
+    // ==================== SHOW ADD MODAL ====================
+    function showAddModal(type) {
+        $('#addForm').attr('data-type', type);
+        $('#addForm')[0].reset();
+        $('#addModalLabel').text(`Add ${getTypeLabel(type)}`);
+
+        $('.field-code, .field-icdm, .field-cost').hide();
+
+        if (type === 'icd') $('.field-code').show();
+        if (type === 'icdm') {
+            $('.field-icdm').show();
+            loadIcdDropdown('add_icd_id');
+        }
+        if (type === 'icdt' || type === 'icds') $('.field-cost').show();
+
+        $('#addModal').modal('show');
+    }
+
+    // ==================== SHOW EDIT MODAL ====================
+    function showEditModal(type, id) {
+        $.ajax({
+            url: `/icd/api/${type}/${id}`,
+            method: 'GET',
+            success: function (response) {
+                if (response.success) {
+                    var data = response.data;
+
+                    $('#editForm').attr('data-type', type);
+                    $('#editForm').attr('data-id', id);
+                    $('#editModalLabel').text(`Edit ${getTypeLabel(type)}`);
+
+                    $('#edit_id').val(data.id);
+                    $('#edit_name').val(data.name || '');
+
+                    $('.field-code, .field-icdm, .field-cost').hide();
+
+                    if (type === 'icd') {
+                        $('.field-code').show();
+                        $('#edit_code').val(data.code || '');
+                    }
+                    if (type === 'icdm') {
+                        $('.field-icdm').show();
+                        $('#edit_icd_id').val(data.icd_id || '');
+                        loadIcdDropdown('edit_icd_id');
+                    }
+                    if (type === 'icdt' || type === 'icds') {
+                        $('.field-cost').show();
+                        $('#edit_cost').val(data.cost || 0);
+                    }
+
+                    $('#editModal').modal('show');
+                }
+            },
+            error: function () {
+                alert('Failed to load data');
+            }
+        });
+    }
+
+    // ==================== SHOW DELETE MODAL ====================
+    function showDeleteModal(type, id, name) {
+        $('#deleteModalLabel').text(`Delete ${getTypeLabel(type)}`);
+        $('#deleteMessage').html(`Are you sure you want to delete <strong>${name}</strong>?`);
+        $('#deleteForm').attr('data-type', type);
+        $('#deleteForm').attr('data-id', id);
+        $('#deleteModal').modal('show');
+    }
+
+    // ==================== SUBMIT FORM ====================
+    function submitForm(type, action, data, id = null) {
+        // Validate
+        if (type === 'icd' && !data.code) {
+            alert('Code is required');
+            return;
+        }
+        if (!data.name) {
+            alert('Name is required');
+            return;
+        }
+        if (type === 'icdm' && !data.icd_id) {
+            alert('Please select a related ICD code');
+            return;
+        }
+
+        var url = `/icd/api/${type}`;
+        var method = 'POST';
+
+        if (action === 'edit' && id) {
+            url = `/icd/api/${type}/${id}`;
+            method = 'PUT';
+        }
+
+        // Clean data
+        if (data.icd_id === '') data.icd_id = null;
+        if (data.cost === '' || !data.cost) data.cost = 0;
+
+        $.ajax({
+            url: url,
+            method: method,
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function () {
+                var modal = action === 'add' ? '#addModal' : '#editModal';
+                $(modal).modal('hide');
+                loadData(type);
+            },
+            error: function (xhr) {
+                var modal = action === 'add' ? '#addModal' : '#editModal';
+                $(modal).modal('hide');
+
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    alert('Error: ' + (response.error || 'Server error'));
+                } catch (e) {
+                    alert('Error: ' + xhr.statusText);
+                }
+            }
+        });
+    }
+
+    // ==================== LOAD ICD DROPDOWN ====================
+    function loadIcdDropdown(targetId) {
+        $.ajax({
+            url: '/icd/api/dropdown/icd',
+            method: 'GET',
+            success: function (response) {
+                if (response.success) {
+                    var select = $(`#${targetId}`);
+                    select.empty();
+                    select.append('<option value="">Select ICD Code...</option>');
+                    $.each(response.data, function (i, item) {
+                        select.append(`<option value="${item.id}">${item.label}</option>`);
+                    });
+                }
+            },
+            error: function () {
+                console.error('Failed to load ICD dropdown');
+            }
+        });
+    }
+
+    // ==================== GET TYPE LABEL ====================
+    function getTypeLabel(type) {
+        var labels = { 'icd': 'ICD Code', 'icdm': 'Medicine Code', 'icdt': 'Test Code', 'icds': 'Surgery Code' };
+        return labels[type] || type;
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block title %}Surgeries{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="bi bi-scissors"></i> Schedule Surgery</h2>
+        <p class="text-muted">Schedule a new surgery for a patient</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <form id="surgeryForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Patient</label>
+                            <input type="text" class="form-control" id="patientSearch" placeholder="Search by national code...">
+                            <input type="hidden" id="patientId">
+                            <div id="patientSuggestions" class="list-group mt-1"></div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Surgeon</label>
+                            <select class="form-control" id="surgeonId" required>
+                                <option value="">Select Surgeon...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Surgery Type</label>
+                            <select class="form-control" id="surgeryCode" required>
+                                <option value="">Select Surgery...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Room</label>
+                            <select class="form-control" id="roomId" required>
+                                <option value="">Select Room...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Surgery Date & Time</label>
+                            <input type="datetime-local" class="form-control" id="surgeryDate" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-warning">Schedule Surgery</button>
+                    <a href="{{ url_for('staff.dashboard') }}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Today's Surgeries -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-hospital"></i> Today's Surgeries</h5>
+            </div>
+            <div class="card-body" id="today-surgeries-list">
+                <p class="text-muted">Loading...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    var searchTimeout;
+    
+    loadSurgeons();
+    loadSurgeryCodes();
+    loadRooms();
+    loadTodaySurgeries();
+    
+    // Patient search
+    $('#patientSearch').on('keyup', function() {
+        clearTimeout(searchTimeout);
+        var query = $(this).val().trim();
+        if (query.length < 2) {
+            $('#patientSuggestions').empty();
+            return;
+        }
+        searchTimeout = setTimeout(function() {
+            searchPatients(query);
+        }, 300);
+    });
+    
+    // Form submission
+    $('#surgeryForm').on('submit', function(e) {
+        e.preventDefault();
+        scheduleSurgery();
+    });
+});
+
+function searchPatients(query) {
+    $.ajax({
+        url: `/staff/api/patients/search?q=${encodeURIComponent(query)}`,
+        method: 'GET',
+        success: function(response) {
+            var container = $('#patientSuggestions');
+            container.empty();
+            if (response.success && response.data.length > 0) {
+                $.each(response.data, function(i, patient) {
+                    container.append(`
+                        <a href="#" class="list-group-item list-group-item-action" 
+                           onclick="selectPatient(${patient.pid}, '${patient.firstname} ${patient.lastname}')">
+                            ${patient.firstname} ${patient.lastname} - ${patient.nationalcode}
+                        </a>
+                    `);
+                });
+            } else {
+                container.append(`<span class="text-muted">No patients found</span>`);
+            }
+        }
+    });
+}
+
+function selectPatient(id, name) {
+    $('#patientId').val(id);
+    $('#patientSearch').val(name);
+    $('#patientSuggestions').empty();
+}
+
+function loadSurgeons() {
+    $.ajax({
+        url: '/staff/api/surgeons',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var select = $('#surgeonId');
+                $.each(response.data, function(i, surgeon) {
+                    select.append(`<option value="${surgeon.id}">${surgeon.name} - ${surgeon.surgicalfield}</option>`);
+                });
+            }
+        }
+    });
+}
+
+function loadSurgeryCodes() {
+    $.ajax({
+        url: '/staff/api/surgery-codes',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var select = $('#surgeryCode');
+                $.each(response.data, function(i, code) {
+                    select.append(`<option value="${code.id}">${code.name} ($${parseFloat(code.cost).toFixed(2)})</option>`);
+                });
+            }
+        }
+    });
+}
+
+function loadRooms() {
+    $.ajax({
+        url: '/staff/api/rooms',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var select = $('#roomId');
+                $.each(response.data, function(i, room) {
+                    select.append(`<option value="${room.id}">${room.name}${room.description ? ' - ' + room.description : ''}</option>`);
+                });
+            }
+        }
+    });
+}
+
+function loadTodaySurgeries() {
+    $.ajax({
+        url: '/staff/api/surgeries/today',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#today-surgeries-list');
+            if (response.success && response.data.length > 0) {
+                var html = '<div class="table-responsive"><table class="table table-hover">';
+                html += `
+                    <thead>
+                        <tr>
+                            <th>Patient</th>
+                            <th>Surgery</th>
+                            <th>Surgeon</th>
+                            <th>Room</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                `;
+                $.each(response.data, function(i, surgery) {
+                    html += `
+                        <tr>
+                            <td><strong>${surgery.patient_name}</strong></td>
+                            <td>${surgery.surgery_name}</td>
+                            <td>${surgery.surgeon_name}</td>
+                            <td>${surgery.room_name}</td>
+                            <td><span class="badge bg-warning">${surgery.status}</span></td>
+                        </tr>
+                    `;
+                });
+                html += '</tbody></table></div>';
+                container.html(html);
+            } else {
+                container.html('<p class="text-muted">No surgeries today</p>');
+            }
+        }
+    });
+}
+
+function scheduleSurgery() {
+    var data = {
+        patient_id: $('#patientId').val(),
+        surgeon_id: $('#surgeonId').val(),
+        surgery_code: $('#surgeryCode').val(),
+        room_id: $('#roomId').val(),
+        surgery_date: $('#surgeryDate').val()
+    };
+    
+    if (!data.patient_id) {
+        alert('Please select a patient');
+        return;
+    }
+    if (!data.surgeon_id) {
+        alert('Please select a surgeon');
+        return;
+    }
+    if (!data.surgery_code) {
+        alert('Please select a surgery type');
+        return;
+    }
+    if (!data.room_id) {
+        alert('Please select a room');
+        return;
+    }
+    if (!data.surgery_date) {
+        alert('Please select a date and time');
+        return;
+    }
+    
+    $.ajax({
+        url: '/staff/api/surgeries',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function(response) {
+            if (response.success) {
+                alert('✅ Surgery scheduled successfully!');
+                window.location.href = '/staff/dashboard';
+            } else {
+                alert('❌ Error: ' + response.error);
+            }
+        },
+        error: function(xhr) {
+            try {
+                var response = JSON.parse(xhr.responseText);
+                alert('❌ Error: ' + response.error);
+            } catch(e) {
+                alert('❌ Error: ' + xhr.statusText);
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

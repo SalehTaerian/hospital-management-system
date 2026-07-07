@@ -1,0 +1,438 @@
+{% extends "base.html" %}
+
+{% block title %}Appointments{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="bi bi-calendar-plus"></i> Book Appointment</h2>
+        <p class="text-muted">Select a patient, date, and doctor to book an appointment</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <form id="appointmentForm">
+                    <!-- Patient Search -->
+                    <div class="mb-3">
+                        <label class="form-label">Patient</label>
+                        <input type="text" class="form-control" id="patientSearch" placeholder="Search by national code...">
+                        <input type="hidden" id="patientId">
+                        <div id="patientSuggestions" class="list-group mt-1"></div>
+                    </div>
+                    
+                    <!-- Date Picker -->
+                    <div class="mb-3">
+                        <label class="form-label">Date</label>
+                        <input type="date" class="form-control" id="appointmentDate" required>
+                    </div>
+                    
+                    <!-- Doctor Selection -->
+                    <div class="mb-3">
+                        <label class="form-label">Available Doctors</label>
+                        <select class="form-control" id="doctorId" required>
+                            <option value="">Select a date first...</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Time Slots -->
+                    <div class="mb-3">
+                        <label class="form-label">Available Time Slots</label>
+                        <div id="timeSlotsContainer" class="d-flex flex-wrap gap-2">
+                            <p class="text-muted">Select a doctor to see available slots</p>
+                        </div>
+                        <input type="hidden" id="selectedTime">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" id="bookBtn" disabled>Book Appointment</button>
+                    <a href="{{ url_for('staff.dashboard') }}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Today's Appointments with Status Management -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-calendar-event"></i> Today's Appointments</h5>
+            </div>
+            <div class="card-body" id="today-appointments-list">
+                <p class="text-muted">Loading...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Status Update Modal -->
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Appointment Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Patient:</strong> <span id="statusPatientName"></span></p>
+                <p><strong>Time:</strong> <span id="statusTime"></span></p>
+                <div class="mb-3">
+                    <label class="form-label">Status</label>
+                    <select class="form-control" id="statusSelect">
+                        <option value="Scheduled">Scheduled</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                        <option value="No Show">No Show</option>
+                        <option value="Reserved">Reserved</option>
+                        <option value="Not Reserved">Not Reserved</option>
+                    </select>
+                </div>
+                <input type="hidden" id="statusAppointmentId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="updateStatusBtn">Update Status</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    var searchTimeout;
+    
+    // Set default date to today
+    var today = new Date().toISOString().split('T')[0];
+    $('#appointmentDate').val(today);
+    
+    // Load today's appointments
+    loadTodayAppointments();
+    
+    // Patient search
+    $('#patientSearch').on('keyup', function() {
+        clearTimeout(searchTimeout);
+        var query = $(this).val().trim();
+        if (query.length < 2) {
+            $('#patientSuggestions').empty();
+            return;
+        }
+        searchTimeout = setTimeout(function() {
+            searchPatients(query);
+        }, 300);
+    });
+    
+    // Date change - reload doctors
+    $('#appointmentDate').on('change', function() {
+        loadAvailableDoctors();
+        $('#timeSlotsContainer').html('<p class="text-muted">Select a doctor to see available slots</p>');
+        $('#selectedTime').val('');
+        $('#bookBtn').prop('disabled', true);
+    });
+    
+    // Doctor change - load time slots
+    $('#doctorId').on('change', function() {
+        var doctorId = $(this).val();
+        if (doctorId) {
+            loadTimeSlots(doctorId);
+        } else {
+            $('#timeSlotsContainer').html('<p class="text-muted">Select a doctor to see available slots</p>');
+            $('#selectedTime').val('');
+            $('#bookBtn').prop('disabled', true);
+        }
+    });
+    
+    // Load initial doctors
+    loadAvailableDoctors();
+    
+    // Form submission
+    $('#appointmentForm').on('submit', function(e) {
+        e.preventDefault();
+        bookAppointment();
+    });
+    
+    // Status update
+    $('#updateStatusBtn').on('click', function() {
+        updateAppointmentStatus();
+    });
+});
+
+function searchPatients(query) {
+    $.ajax({
+        url: `/staff/api/patients/search?q=${encodeURIComponent(query)}`,
+        method: 'GET',
+        success: function(response) {
+            var container = $('#patientSuggestions');
+            container.empty();
+            if (response.success && response.data.length > 0) {
+                $.each(response.data, function(i, patient) {
+                    container.append(`
+                        <a href="#" class="list-group-item list-group-item-action" 
+                           onclick="selectPatient(${patient.pid}, '${patient.firstname} ${patient.lastname}')">
+                            ${patient.firstname} ${patient.lastname} - ${patient.nationalcode}
+                            <span class="badge bg-secondary float-end">${patient.age || 'N/A'} years</span>
+                        </a>
+                    `);
+                });
+            } else {
+                container.append(`<span class="text-muted">No patients found</span>`);
+            }
+        }
+    });
+}
+
+function selectPatient(id, name) {
+    $('#patientId').val(id);
+    $('#patientSearch').val(name);
+    $('#patientSuggestions').empty();
+}
+
+function loadAvailableDoctors() {
+    var date = $('#appointmentDate').val();
+    if (!date) return;
+    
+    $('#doctorId').html('<option value="">Loading doctors...</option>');
+    
+    $.ajax({
+        url: `/staff/api/doctors/available?date=${date}`,
+        method: 'GET',
+        success: function(response) {
+            var select = $('#doctorId');
+            select.html('<option value="">Select Doctor...</option>');
+            
+            if (response.success && response.data.length > 0) {
+                $.each(response.data, function(i, doctor) {
+                    var label = `${doctor.name} (${doctor.specialization}) - ${doctor.available_count} slots available`;
+                    select.append(`<option value="${doctor.id}">${label}</option>`);
+                });
+            } else {
+                select.append('<option value="">No doctors on shift for this date</option>');
+            }
+        },
+        error: function() {
+            $('#doctorId').html('<option value="">Error loading doctors</option>');
+        }
+    });
+}
+
+function loadTimeSlots(doctorId) {
+    var date = $('#appointmentDate').val();
+    if (!date || !doctorId) return;
+    
+    var container = $('#timeSlotsContainer');
+    container.html('<p class="text-muted">Loading time slots...</p>');
+    
+    $.ajax({
+        url: `/staff/api/doctors/${doctorId}/slots?date=${date}`,
+        method: 'GET',
+        success: function(response) {
+            container.empty();
+            
+            if (response.success && response.data.length > 0) {
+                var availableCount = 0;
+                $.each(response.data, function(i, slot) {
+                    if (slot.available) {
+                        availableCount++;
+                        container.append(`
+                            <button type="button" 
+                                    class="btn btn-outline-success time-slot" 
+                                    data-time="${slot.time}"
+                                    onclick="selectTimeSlot(this, '${slot.time}')">
+                                ${slot.display}
+                            </button>
+                        `);
+                    } else {
+                        container.append(`
+                            <button type="button" class="btn btn-outline-secondary time-slot" disabled>
+                                ${slot.display} ❌
+                            </button>
+                        `);
+                    }
+                });
+                
+                if (availableCount === 0) {
+                    container.html('<p class="text-danger">No available slots for this doctor on this date</p>');
+                    $('#bookBtn').prop('disabled', true);
+                } else {
+                    $('#bookBtn').prop('disabled', true);
+                }
+            } else {
+                container.html('<p class="text-danger">No slots available for this doctor on this date</p>');
+                $('#bookBtn').prop('disabled', true);
+            }
+        },
+        error: function() {
+            container.html('<p class="text-danger">Error loading time slots</p>');
+            $('#bookBtn').prop('disabled', true);
+        }
+    });
+}
+
+function selectTimeSlot(element, time) {
+    $('.time-slot').removeClass('btn-success active').addClass('btn-outline-success');
+    $(element).removeClass('btn-outline-success').addClass('btn-success active');
+    $('#selectedTime').val(time);
+    $('#bookBtn').prop('disabled', false);
+}
+
+function bookAppointment() {
+    var data = {
+        patient_id: $('#patientId').val(),
+        doctor_id: $('#doctorId').val(),
+        date: $('#appointmentDate').val(),
+        time: $('#selectedTime').val()
+    };
+    
+    if (!data.patient_id) {
+        alert('Please select a patient');
+        return;
+    }
+    if (!data.doctor_id) {
+        alert('Please select a doctor');
+        return;
+    }
+    if (!data.date) {
+        alert('Please select a date');
+        return;
+    }
+    if (!data.time) {
+        alert('Please select a time slot');
+        return;
+    }
+    
+    $('#bookBtn').prop('disabled', true).text('Booking...');
+    
+    $.ajax({
+        url: '/staff/api/appointments',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function(response) {
+            if (response.success) {
+                alert('✅ Appointment booked successfully!');
+                $('#bookBtn').prop('disabled', false).text('Book Appointment');
+                loadTodayAppointments();
+                $('#appointmentForm')[0].reset();
+                $('#patientSearch').val('');
+                $('#patientId').val('');
+                $('#timeSlotsContainer').html('<p class="text-muted">Select a doctor to see available slots</p>');
+                $('#bookBtn').prop('disabled', true);
+            } else {
+                alert('❌ Error: ' + response.error);
+                $('#bookBtn').prop('disabled', false).text('Book Appointment');
+            }
+        },
+        error: function(xhr) {
+            $('#bookBtn').prop('disabled', false).text('Book Appointment');
+            try {
+                var response = JSON.parse(xhr.responseText);
+                alert('❌ Error: ' + response.error);
+            } catch(e) {
+                alert('❌ Error: ' + xhr.statusText);
+            }
+        }
+    });
+}
+
+function loadTodayAppointments() {
+    $.ajax({
+        url: '/staff/api/appointments/today',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#today-appointments-list');
+            if (response.success && response.data.length > 0) {
+                var html = '<div class="table-responsive"><table class="table table-hover">';
+                html += `
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Patient</th>
+                            <th>Doctor</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                `;
+                $.each(response.data, function(i, apt) {
+                    var statusColors = {
+                        'Scheduled': 'info',
+                        'Completed': 'success',
+                        'Cancelled': 'danger',
+                        'No Show': 'warning',
+                        'Reserved': 'primary',
+                        'Not Reserved': 'secondary'
+                    };
+                    var color = statusColors[apt.status] || 'secondary';
+                    
+                    html += `
+                        <tr>
+                            <td><strong>${apt.time}</strong></td>
+                            <td>${apt.patient_name}</td>
+                            <td>${apt.doctor_name}</td>
+                            <td><span class="badge bg-${color}">${apt.status}</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" 
+                                        onclick="openStatusModal(${apt.appoid}, '${apt.patient_name}', '${apt.time}', '${apt.status}')">
+                                    <i class="bi bi-pencil"></i> Update Status
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                html += '</tbody></table></div>';
+                container.html(html);
+            } else {
+                container.html('<p class="text-muted">No appointments today</p>');
+            }
+        }
+    });
+}
+
+function openStatusModal(appointmentId, patientName, time, currentStatus) {
+    $('#statusPatientName').text(patientName);
+    $('#statusTime').text(time);
+    $('#statusSelect').val(currentStatus);
+    $('#statusAppointmentId').val(appointmentId);
+    $('#statusModal').modal('show');
+}
+
+function updateAppointmentStatus() {
+    var appointmentId = $('#statusAppointmentId').val();
+    var status = $('#statusSelect').val();
+    
+    if (!appointmentId) {
+        alert('Error: No appointment selected');
+        return;
+    }
+    
+    $.ajax({
+        url: `/staff/api/appointments/${appointmentId}/status`,
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify({ status: status }),
+        success: function(response) {
+            if (response.success) {
+                $('#statusModal').modal('hide');
+                alert('✅ ' + response.message);
+                loadTodayAppointments();
+            } else {
+                alert('❌ Error: ' + response.error);
+            }
+        },
+        error: function(xhr) {
+            try {
+                var response = JSON.parse(xhr.responseText);
+                alert('❌ Error: ' + response.error);
+            } catch(e) {
+                alert('❌ Error: ' + xhr.statusText);
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

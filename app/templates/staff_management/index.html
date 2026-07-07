@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}Staff Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body py-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0"><i class="bi bi-people"></i> Staff Management</h2>
+                        <p class="mb-0 mt-2">Manage all hospital staff members</p>
+                    </div>
+                    <a href="{{ url_for('staff_management.add_staff_page') }}" class="btn btn-light">
+                        <i class="bi bi-person-plus"></i> Add Staff
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mt-4 mb-4" id="stats-container">
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body text-center">
+                <h3 id="total-staff">-</h3>
+                <p class="mb-0">Total Staff</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-danger">
+            <div class="card-body text-center">
+                <h3 id="total-doctors">-</h3>
+                <p class="mb-0">Doctors</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body text-center">
+                <h3 id="total-surgeons">-</h3>
+                <p class="mb-0">Surgeons</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body text-center">
+                <h3 id="total-nurses">-</h3>
+                <p class="mb-0">Nurses</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Staff Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> All Staff Members</h5>
+                <div>
+                    <input type="text" id="searchInput" class="form-control form-control-sm d-inline-block" 
+                           placeholder="Search..." style="width:200px;">
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped" id="staffTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>National Code</th>
+                                <th>Role</th>
+                                <th>Department</th>
+                                <th>Contract</th>
+                                <th>Salary</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staffTableBody">
+                            <tr>
+                                <td colspan="8" class="text-center">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong id="deleteStaffName"></strong>?</p>
+                <p class="text-danger"><small>This action cannot be undone!</small></p>
+                <input type="hidden" id="deleteStaffId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    loadStaffStats();
+    loadStaffTable();
+    
+    // Search functionality
+    $('#searchInput').on('keyup', function() {
+        filterTable();
+    });
+    
+    // Delete button handler (delegated)
+    $(document).on('click', '.btn-delete', function() {
+        var id = $(this).data('id');
+        var name = $(this).data('name');
+        $('#deleteStaffId').val(id);
+        $('#deleteStaffName').text(name);
+        $('#deleteModal').modal('show');
+    });
+    
+    // Confirm delete
+    $('#confirmDeleteBtn').on('click', function() {
+        var id = $('#deleteStaffId').val();
+        deleteStaff(id);
+    });
+});
+
+function loadStaffStats() {
+    $.ajax({
+        url: '/staff-management/api/stats',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                $('#total-staff').text(response.data.total || 0);
+                $('#total-doctors').text(response.data.doctors || 0);
+                $('#total-surgeons').text(response.data.surgeons || 0);
+                $('#total-nurses').text(response.data.nurses || 0);
+            }
+        }
+    });
+}
+
+function loadStaffTable() {
+    $.ajax({
+        url: '/staff-management/api/staff',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                renderTable(response.data);
+            } else {
+                $('#staffTableBody').html('<tr><td colspan="8" class="text-center text-danger">Failed to load data</td></tr>');
+            }
+        },
+        error: function() {
+            $('#staffTableBody').html('<tr><td colspan="8" class="text-center text-danger">Error loading data</td></tr>');
+        }
+    });
+}
+
+function renderTable(data) {
+    var tbody = $('#staffTableBody');
+    tbody.empty();
+    
+    if (!data || data.length === 0) {
+        tbody.html('<tr><td colspan="8" class="text-center">No staff members found</td></tr>');
+        return;
+    }
+    
+    var roleColors = {
+        'Doctor': 'danger',
+        'Surgeon': 'warning',
+        'Nurse': 'success',
+        'Office Staff': 'info'
+    };
+    
+    $.each(data, function(index, staff) {
+        var color = roleColors[staff.role] || 'secondary';
+        var row = '<tr>';
+        row += `<td>${staff.employeeid}</td>`;
+        row += `<td><strong>${staff.firstname} ${staff.lastname}</strong></td>`;
+        row += `<td>${staff.nationalcode}</td>`;
+        row += `<td><span class="badge bg-${color}">${staff.role || 'Unknown'}</span></td>`;
+        row += `<td>${staff.department_name || 'N/A'}</td>`;
+        row += `<td>${staff.contracttype || 'N/A'}</td>`;
+        row += `<td>$${parseFloat(staff.salary || 0).toFixed(2)}</td>`;
+        row += `
+            <td>
+                <a href="/staff-management/edit/${staff.employeeid}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-pencil"></i>
+                </a>
+                <button class="btn btn-sm btn-danger btn-delete" 
+                        data-id="${staff.employeeid}" 
+                        data-name="${staff.firstname} ${staff.lastname}">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+        row += '</tr>';
+        tbody.append(row);
+    });
+}
+
+function filterTable() {
+    var search = $('#searchInput').val().toLowerCase();
+    $('#staffTableBody tr').each(function() {
+        var text = $(this).text().toLowerCase();
+        $(this).toggle(text.indexOf(search) > -1);
+    });
+}
+
+function deleteStaff(id) {
+    $.ajax({
+        url: `/staff-management/api/staff/${id}`,
+        method: 'DELETE',
+        success: function(response) {
+            if (response.success) {
+                $('#deleteModal').modal('hide');
+                loadStaffTable();
+                loadStaffStats();
+                alert('✅ ' + response.message);
+            } else {
+                alert('❌ Error: ' + response.error);
+            }
+        },
+        error: function(xhr) {
+            try {
+                var response = JSON.parse(xhr.responseText);
+                alert('❌ Error: ' + response.error);
+            } catch(e) {
+                alert('❌ Error: ' + xhr.statusText);
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,31 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5>Medicine Codes (ICDM)</h5>
+    <div class="d-flex gap-2">
+        <input type="text" class="form-control search-input" data-type="icdm" placeholder="Search medicines..." style="width: 250px;">
+        <button class="btn btn-success btn-add" data-type="icdm">
+            <i class="bi bi-plus-circle"></i> Add Medicine
+        </button>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-hover table-striped" id="icdm-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Medicine Name</th>
+                <th>Related ICD</th>
+                <th>Type</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td colspan="5" class="text-center py-4">
+                    <i class="bi bi-inbox display-4 d-block text-muted"></i>
+                    <p class="mt-2">Loading medicines...</p>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>

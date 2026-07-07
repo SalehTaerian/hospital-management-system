@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Login{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Patient Login</h4>
+            </div>
+            <div class="card-body">
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                {% if message %}
+                <div class="alert alert-success">{{ message }}</div>
+                {% endif %}
+                
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">National Code</label>
+                        <input type="text" class="form-control" name="nationalCode" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Login</button>
+                </form>
+                
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('auth.patient_register') }}">Don't have an account? Register</a>
+                </div>
+                <div class="text-center">
+                    <a href="{{ url_for('auth.staff_login') }}">Staff Login</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

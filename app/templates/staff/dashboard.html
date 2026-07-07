@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Staff Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4"><i class="bi bi-speedometer2"></i> Staff Dashboard</h2>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4" id="stats-container">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">Total Patients</h5>
+                <h2 class="card-text" id="total-patients">-</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">Today's Appointments</h5>
+                <h2 class="card-text" id="today-appointments">-</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title">Today's Surgeries</h5>
+                <h2 class="card-text" id="today-surgeries">-</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-danger">
+            <div class="card-body">
+                <h5 class="card-title">Pending Appointments</h5>
+                <h2 class="card-text" id="pending-appointments">-</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-search display-4 text-primary"></i>
+                <h5 class="mt-2">Find Patient</h5>
+                <a href="{{ url_for('staff.patients') }}" class="btn btn-primary">Search</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-calendar-plus display-4 text-success"></i>
+                <h5 class="mt-2">Book Appointment</h5>
+                <a href="{{ url_for('staff.appointments') }}" class="btn btn-success">Book</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-scissors display-4 text-warning"></i>
+                <h5 class="mt-2">Schedule Surgery</h5>
+                <a href="{{ url_for('staff.surgeries') }}" class="btn btn-warning">Schedule</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Today's Schedule -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-calendar-event"></i> Today's Appointments</h5>
+                <a href="{{ url_for('staff.appointments') }}" class="btn btn-sm btn-primary float-end">Manage</a>
+            </div>
+            <div class="card-body" id="today-appointments-list">
+                <p class="text-muted">Loading...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-hospital"></i> Today's Surgeries</h5>
+                <a href="{{ url_for('staff.surgeries') }}" class="btn btn-sm btn-primary float-end">Manage</a>
+            </div>
+            <div class="card-body" id="today-surgeries-list">
+                <p class="text-muted">Loading...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    loadDashboardStats();
+    loadTodayAppointments();
+    loadTodaySurgeries();
+});
+
+function loadDashboardStats() {
+    $.ajax({
+        url: '/staff/api/dashboard/stats',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                $('#total-patients').text(response.data.total_patients || 0);
+                $('#today-appointments').text(response.data.today_appointments || 0);
+                $('#today-surgeries').text(response.data.today_surgeries || 0);
+                $('#pending-appointments').text(response.data.pending_appointments || 0);
+                $('#pending-surgeries').text(response.data.pending_surgeries || 0);
+            }
+        }
+    });
+}
+
+function loadTodayAppointments() {
+    $.ajax({
+        url: '/staff/api/appointments/today',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#today-appointments-list');
+            if (response.success && response.data.length > 0) {
+                var html = '<ul class="list-group">';
+                $.each(response.data.slice(0, 5), function(i, apt) {
+                    var statusColors = {
+                        'Scheduled': 'info',
+                        'Completed': 'success',
+                        'Cancelled': 'danger',
+                        'No Show': 'warning',
+                        'Reserved': 'primary',
+                        'Not Reserved': 'secondary'
+                    };
+                    var color = statusColors[apt.status] || 'secondary';
+                    html += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                <strong>${apt.time}</strong> - ${apt.patient_name}
+                                <br><small class="text-muted">${apt.doctor_name}</small>
+                            </span>
+                            <span class="badge bg-${color}">${apt.status}</span>
+                        </li>
+                    `;
+                });
+                html += '</ul>';
+                container.html(html);
+            } else {
+                container.html('<p class="text-muted">No appointments today</p>');
+            }
+        }
+    });
+}
+
+function loadTodaySurgeries() {
+    $.ajax({
+        url: '/staff/api/surgeries/today',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#today-surgeries-list');
+            if (response.success && response.data.length > 0) {
+                var html = '<ul class="list-group">';
+                $.each(response.data.slice(0, 5), function(i, surgery) {
+                    html += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                <strong>${surgery.patient_name}</strong>
+                                <br><small class="text-muted">${surgery.surgery_name}</small>
+                            </span>
+                            <span class="badge bg-warning">${surgery.room_name}</span>
+                        </li>
+                    `;
+                });
+                html += '</ul>';
+                container.html(html);
+            } else {
+                container.html('<p class="text-muted">No surgeries today</p>');
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

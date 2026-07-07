@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Search{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="bi bi-search"></i> Patient Search</h2>
+        <p class="text-muted">Search patients by national code</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6 mx-auto">
+        <div class="input-group">
+            <input type="text" class="form-control" id="searchInput" placeholder="Enter national code...">
+            <button class="btn btn-primary" id="searchBtn">
+                <i class="bi bi-search"></i> Search
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="results-container">
+    <div class="text-center text-muted py-5">
+        <i class="bi bi-search display-1"></i>
+        <p class="mt-2">Enter a national code to find patients</p>
+    </div>
+</div>
+
+<!-- Patient Detail Modal -->
+<div class="modal fade" id="patientModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Patient Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="patientModalBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p>Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    $('#searchBtn').on('click', searchPatients);
+    $('#searchInput').on('keypress', function(e) {
+        if (e.which === 13) searchPatients();
+    });
+});
+
+function searchPatients() {
+    var query = $('#searchInput').val().trim();
+    if (query.length < 2) {
+        alert('Please enter at least 2 characters');
+        return;
+    }
+    
+    $.ajax({
+        url: `/staff/api/patients/search?q=${encodeURIComponent(query)}`,
+        method: 'GET',
+        success: function(response) {
+            var container = $('#results-container');
+            if (response.success && response.data.length > 0) {
+                var html = `<div class="list-group"><h5>Found ${response.data.length} patients:</h5>`;
+                $.each(response.data, function(i, patient) {
+                    html += `
+                        <a href="#" class="list-group-item list-group-item-action" 
+                           data-id="${patient.pid}" onclick="viewPatient(${patient.pid})">
+                            <div class="d-flex justify-content-between">
+                                <span>
+                                    <strong>${patient.firstname} ${patient.lastname}</strong>
+                                    <br><small class="text-muted">${patient.nationalcode}</small>
+                                </span>
+                                <span>
+                                    <span class="badge bg-info">${patient.age || 'N/A'} years</span>
+                                    <span class="badge bg-secondary">${patient.city || ''}</span>
+                                </span>
+                            </div>
+                        </a>
+                    `;
+                });
+                html += '</div>';
+                container.html(html);
+            } else {
+                container.html(`
+                    <div class="alert alert-warning text-center py-4">
+                        <i class="bi bi-exclamation-triangle display-4"></i>
+                        <p class="mt-2">No patients found matching "${query}"</p>
+                    </div>
+                `);
+            }
+        }
+    });
+}
+
+function viewPatient(patientId) {
+    $('#patientModal').modal('show');
+    $('#patientModalBody').html(`
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p>Loading patient details...</p>
+        </div>
+    `);
+    
+    $.ajax({
+        url: `/staff/api/patients/${patientId}`,
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var p = response.data;
+                var html = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Personal Information</h5>
+                            <table class="table table-sm">
+                                <tr><td><strong>Name:</strong></td><td>${p.firstName} ${p.lastName}</td></tr>
+                                <tr><td><strong>National Code:</strong></td><td>${p.nationalCode}</td></tr>
+                                <tr><td><strong>Gender:</strong></td><td>${p.gender || 'N/A'}</td></tr>
+                                <tr><td><strong>Age:</strong></td><td>${p.age || 'N/A'} years</td></tr>
+                                <tr><td><strong>Phone:</strong></td><td>${p.phone || 'N/A'}</td></tr>
+                                <tr><td><strong>Blood Type:</strong></td><td>${p.bloodType || 'N/A'}</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Medical Summary</h5>
+                            <p><strong>Smoking History:</strong> ${p.smokingHistory || 'N/A'}</p>
+                            
+                            <h6>Recent Appointments</h6>
+                            ${p.appointments && p.appointments.length > 0 ?
+                                `<table class="table table-sm">
+                                    <thead><tr><th>Date</th><th>Time</th><th>Doctor</th><th>Status</th></tr></thead>
+                                    <tbody>
+                                        ${p.appointments.slice(0, 5).map(a => `
+                                            <tr>
+                                                <td>${a.date}</td>
+                                                <td>${a.time}</td>
+                                                <td>${a.doctor}</td>
+                                                <td><span class="badge bg-secondary">${a.status}</span></td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>` :
+                                '<p class="text-muted">No appointments</p>'
+                            }
+                        </div>
+                    </div>
+                `;
+                $('#patientModalBody').html(html);
+            } else {
+                $('#patientModalBody').html(`
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i> ${response.error}
+                    </div>
+                `);
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

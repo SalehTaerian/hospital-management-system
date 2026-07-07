@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Registration{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-7">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="bi bi-person-plus"></i> Patient Registration</h4>
+            </div>
+            <div class="card-body">
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                {% if message %}
+                <div class="alert alert-success">{{ message }}</div>
+                {% endif %}
+
+                <form method="POST">
+                    <!-- Personal Information -->
+                    <h6 class="border-bottom pb-2 mb-3">Personal Information</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">First Name</label>
+                            <input type="text" class="form-control" name="firstName" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" class="form-control" name="lastName" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">National Code</label>
+                            <input type="text" class="form-control" name="nationalCode" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" name="password" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Gender</label>
+                            <select class="form-control" name="gender" required>
+                                <option value="">Select...</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Date of Birth</label>
+                            <input type="date" class="form-control" name="dateOfBirth">
+                        </div>
+                    </div>
+
+                    <!-- Contact Information -->
+                    <h6 class="border-bottom pb-2 mb-3 mt-4">Contact Information</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Phone Number</label>
+                            <input type="text" class="form-control" name="phoneNumber" placeholder="0912...">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Home Number</label>
+                            <input type="text" class="form-control" name="homeNumber" placeholder="021...">
+                        </div>
+                    </div>
+
+                    <!-- Address Information -->
+                    <h6 class="border-bottom pb-2 mb-3 mt-4">Address Information</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Province</label>
+                            <input type="text" class="form-control" name="province">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">City</label>
+                            <input type="text" class="form-control" name="city">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Street</label>
+                            <input type="text" class="form-control" name="street">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Alley</label>
+                            <input type="text" class="form-control" name="alley">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">House Code</label>
+                        <input type="text" class="form-control" name="houseCode">
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100">Register</button>
+                </form>
+
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('auth.patient_login') }}">Already have an account? Login</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
