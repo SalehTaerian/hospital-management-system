@@ -9,6 +9,7 @@ from app.routes.staff_management_routes import staff_mgmt_bp
 from app.routes.shift_routes import shift_bp
 from app.routes.room_routes import room_bp
 from app.routes.request_routes import request_bp
+from app.routes.admission_routes import admission_bp
 import logging
 
 def create_app():
@@ -25,6 +26,7 @@ def create_app():
     app.register_blueprint(shift_bp)
     app.register_blueprint(room_bp)
     app.register_blueprint(request_bp)
+    app.register_blueprint(admission_bp)
     
     
     logging.basicConfig(level=logging.INFO)

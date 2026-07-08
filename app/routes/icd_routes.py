@@ -408,3 +408,75 @@ def api_delete_bed(bed_id):
 def api_get_signtypes_dropdown():
     results = get_all_signtypes_for_dropdown()
     return jsonify({'success': True, 'data': results})
+
+@icd_bp.route('/api/bedinfo', methods=['GET'])
+def api_get_bedinfo():
+    results = get_all_bedinfo_service()
+    return jsonify({'success': True, 'data': results})
+
+@icd_bp.route('/api/bedinfo/<int:biID>', methods=['GET'])
+def api_get_bedinfo_by_id(biID):
+    try:
+        result = get_bedinfo_by_id_service(biID)
+        return jsonify({'success': True, 'data': result})
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 404
+
+@icd_bp.route('/api/bedinfo', methods=['POST'])
+def api_create_bedinfo():
+    if session.get('user_role') != 'officeStaff':
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    try:
+        data = request.get_json()
+        biID = create_bedinfo_service(data)
+        return jsonify({
+            'success': True,
+            'message': 'Bed info created successfully',
+            'id': biID
+        })
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@icd_bp.route('/api/bedinfo/<int:biID>', methods=['PUT'])
+def api_update_bedinfo(biID):
+    if session.get('user_role') != 'officeStaff':
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    try:
+        data = request.get_json()
+        result = update_bedinfo_service(biID, data)
+        return jsonify({
+            'success': True,
+            'message': 'Bed info updated successfully',
+            'id': result
+        })
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@icd_bp.route('/api/bedinfo/<int:biID>', methods=['DELETE'])
+def api_delete_bedinfo(biID):
+    if session.get('user_role') != 'officeStaff':
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    try:
+        result = delete_bedinfo_service(biID)
+        return jsonify({
+            'success': True,
+            'message': 'Bed info deleted successfully',
+            'id': result
+        })
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@icd_bp.route('/api/dropdown/beds', methods=['GET'])
+def api_get_beds_dropdown():
+    results = get_all_beds_for_dropdown_service()
+    return jsonify({'success': True, 'data': results})
+
+@icd_bp.route('/api/dropdown/admissions', methods=['GET'])
+def api_get_admissions_dropdown():
+    results = get_all_admissions_for_dropdown_service()
+    return jsonify({'success': True, 'data': results})
+
+@icd_bp.route('/api/dropdown/rooms', methods=['GET'])
+def api_get_rooms_dropdown():
+    results = get_all_rooms_for_dropdown_service()
+    return jsonify({'success': True, 'data': results})

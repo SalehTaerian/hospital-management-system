@@ -51,6 +51,11 @@
                     <i class="bi bi-bed"></i> Beds
                 </button>
             </li>
+            <li class="nav-item">
+                <button class="nav-link" id="bedinfo-tab" data-bs-toggle="tab" data-bs-target="#bedinfo" type="button">
+                    <i class="bi bi-clock-history"></i> Bed History
+                </button>
+            </li>
             {% endif %}
         </ul>
 
@@ -61,8 +66,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5>ICD Codes (Diseases)</h5>
                     <div>
-                        <input type="text" class="form-control search-input d-inline-block" data-type="icd"
-                            placeholder="Search..." style="width:200px;">
+                        <input type="text" class="form-control search-input d-inline-block" data-type="icd" placeholder="Search..." style="width:200px;">
                         <button class="btn btn-primary btn-add" data-type="icd">
                             <i class="bi bi-plus-circle"></i> Add ICD
                         </button>
@@ -80,9 +84,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td colspan="5" class="text-center">Loading...</td>
-                            </tr>
+                            <tr><td colspan="5" class="text-center">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -93,8 +95,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5>Medicine Codes (ICDM)</h5>
                     <div>
-                        <input type="text" class="form-control search-input d-inline-block" data-type="icdm"
-                            placeholder="Search..." style="width:200px;">
+                        <input type="text" class="form-control search-input d-inline-block" data-type="icdm" placeholder="Search..." style="width:200px;">
                         <button class="btn btn-success btn-add" data-type="icdm">
                             <i class="bi bi-plus-circle"></i> Add Medicine
                         </button>
@@ -111,9 +112,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td colspan="5" class="text-center">Loading...</td>
-                            </tr>
+                            <tr><td colspan="5" class="text-center">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -124,8 +123,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5>Test Codes (ICDT)</h5>
                     <div>
-                        <input type="text" class="form-control search-input d-inline-block" data-type="icdt"
-                            placeholder="Search..." style="width:200px;">
+                        <input type="text" class="form-control search-input d-inline-block" data-type="icdt" placeholder="Search..." style="width:200px;">
                         <button class="btn btn-info btn-add" data-type="icdt">
                             <i class="bi bi-plus-circle"></i> Add Test
                         </button>
@@ -143,9 +141,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td colspan="5" class="text-center">Loading...</td>
-                            </tr>
+                            <tr><td colspan="5" class="text-center">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -156,8 +152,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5>Surgery Codes (ICDS)</h5>
                     <div>
-                        <input type="text" class="form-control search-input d-inline-block" data-type="icds"
-                            placeholder="Search..." style="width:200px;">
+                        <input type="text" class="form-control search-input d-inline-block" data-type="icds" placeholder="Search..." style="width:200px;">
                         <button class="btn btn-warning btn-add" data-type="icds">
                             <i class="bi bi-plus-circle"></i> Add Surgery
                         </button>
@@ -175,9 +170,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td colspan="5" class="text-center">Loading...</td>
-                            </tr>
+                            <tr><td colspan="5" class="text-center">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -202,9 +195,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td colspan="3" class="text-center">Loading...</td>
-                            </tr>
+                            <tr><td colspan="3" class="text-center">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -231,9 +222,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td colspan="6" class="text-center">Loading...</td>
-                            </tr>
+                            <tr><td colspan="6" class="text-center">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -260,9 +249,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td colspan="6" class="text-center">Loading...</td>
-                            </tr>
+                            <tr><td colspan="6" class="text-center">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -287,9 +274,36 @@
                             </tr>
                         </thead>
                         <tbody>
+                            <tr><td colspan="4" class="text-center">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- BedInfo Tab -->
+            <div class="tab-pane fade" id="bedinfo">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5>Bed History</h5>
+                    <button class="btn btn-primary btn-add-bedinfo">
+                        <i class="bi bi-plus-circle"></i> Add Record
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped" id="bedinfo-table">
+                        <thead>
                             <tr>
-                                <td colspan="4" class="text-center">Loading...</td>
+                                <th>#</th>
+                                <th>Bed</th>
+                                <th>Room</th>
+                                <th>Department</th>
+                                <th>Patient</th>
+                                <th>Status</th>
+                                <th>Start Time</th>
+                                <th>Actions</th>
                             </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="8" class="text-center">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -306,14 +320,13 @@
 {% block scripts %}
 <script>
 $(document).ready(function() {
-    // Hide all type-specific fields initially
     $('.field-code, .field-icdm, .field-cost').hide();
 
     // Tab click - load data
     $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function(e) {
         var target = $(e.target).attr('data-bs-target');
         var type = target.replace('#', '');
-        
+
         if (type === 'signtype') {
             loadSigntypes();
         } else if (type === 'parameter') {
@@ -322,6 +335,8 @@ $(document).ready(function() {
             loadEquipment();
         } else if (type === 'bed') {
             loadBeds();
+        } else if (type === 'bedinfo') {
+            loadBedinfo();
         } else {
             loadData(type);
         }
@@ -333,6 +348,7 @@ $(document).ready(function() {
     loadParameters();
     loadEquipment();
     loadBeds();
+    loadBedinfo();
 
     // ==================== ICD ADD BUTTONS ====================
     $(document).on('click', '.btn-add', function() {
@@ -579,6 +595,36 @@ $(document).ready(function() {
     $('#confirmDeleteBedBtn').on('click', function() {
         deleteBed();
     });
+
+    // ==================== BEDINFO HANDLERS ====================
+    $(document).on('click', '.btn-add-bedinfo', function() {
+        $('#bedinfoModalLabel').text('Add Bed Record');
+        $('#bedinfoId').val('');
+        $('#bedinfoForm')[0].reset();
+        $('#bedinfoMessage').addClass('d-none');
+        loadBedinfoDropdowns();
+        $('#bedinfoModal').modal('show');
+    });
+
+    $(document).on('click', '.btn-edit-bedinfo', function() {
+        var id = $(this).data('id');
+        loadBedinfoDropdowns();
+        editBedinfo(id);
+    });
+
+    $(document).on('click', '.btn-delete-bedinfo', function() {
+        var id = $(this).data('id');
+        $('#deleteBedinfoId').val(id);
+        $('#deleteBedinfoModal').modal('show');
+    });
+
+    $('#saveBedinfoBtn').on('click', function() {
+        saveBedinfo();
+    });
+
+    $('#confirmDeleteBedinfoBtn').on('click', function() {
+        deleteBedinfo();
+    });
 });
 
 // ==================== ICD FUNCTIONS ====================
@@ -608,7 +654,7 @@ function renderTable(type, data) {
         tbody.html('<tr><td colspan="5" class="text-center">No records found</td></tr>');
         return;
     }
-    var typeLabels = {'icd':'ICD','icdm':'Medicine','icdt':'Test','icds':'Surgery'};
+    var typeLabels = { 'icd': 'ICD', 'icdm': 'Medicine', 'icdt': 'Test', 'icds': 'Surgery' };
     $.each(data, function(index, item) {
         var row = '<tr>';
         row += '<td>' + (index + 1) + '</td>';
@@ -677,7 +723,7 @@ function submitForm(type, action, data, id) {
 }
 
 function getTypeLabel(type) {
-    var labels = {'icd':'ICD Code','icdm':'Medicine Code','icdt':'Test Code','icds':'Surgery Code'};
+    var labels = { 'icd': 'ICD Code', 'icdm': 'Medicine Code', 'icdt': 'Test Code', 'icds': 'Surgery Code' };
     return labels[type] || type;
 }
 
@@ -1158,6 +1204,193 @@ function deleteBed() {
 
 function showBedMessage(message, type) {
     var msg = $('#bedMessage');
+    msg.removeClass('d-none alert-success alert-danger').addClass('alert-' + type).text(message);
+}
+
+// ==================== BEDINFO FUNCTIONS ====================
+
+function loadBedinfo() {
+    $.ajax({
+        url: '/icd/api/bedinfo',
+        method: 'GET',
+        success: function(response) {
+            var tbody = $('#bedinfo-table tbody');
+            tbody.empty();
+            if (response.success && response.data && response.data.length > 0) {
+                $.each(response.data, function(i, item) {
+                    var statusColors = {
+                        'Occupied': 'success',
+                        'Available': 'secondary',
+                        'Reserved': 'warning',
+                        'Maintenance': 'danger'
+                    };
+                    var color = statusColors[item.status] || 'secondary';
+
+                    var row = '<tr>';
+                    row += '<td>' + (i + 1) + '</td>';
+                    row += '<td><strong>#' + item.bedid + '</strong></td>';
+                    row += '<td>' + (item.room_name || 'N/A') + '</td>';
+                    row += '<td>' + (item.department_name || 'N/A') + '</td>';
+                    row += '<td>' + (item.patient_name || '-') + '</td>';
+                    row += '<td><span class="badge bg-' + color + '">' + item.status + '</span></td>';
+                    row += '<td>' + (item.starttimestamp || '') + '</td>';
+                    row += '<td>' +
+                        '<button class="btn btn-sm btn-primary btn-edit-bedinfo" data-id="' + item.biid + '"><i class="bi bi-pencil"></i></button>' +
+                        '<button class="btn btn-sm btn-danger btn-delete-bedinfo" data-id="' + item.biid + '"><i class="bi bi-trash"></i></button>' +
+                        '</td>';
+                    row += '</tr>';
+                    tbody.append(row);
+                });
+            } else {
+                tbody.html('<tr><td colspan="8" class="text-center">No bed history records found</td></tr>');
+            }
+        },
+        error: function() {
+            $('#bedinfo-table tbody').html('<tr><td colspan="8" class="text-center text-danger">Error loading bed history</td></tr>');
+        }
+    });
+}
+
+function loadBedinfoDropdowns() {
+    $.ajax({
+        url: '/icd/api/dropdown/beds',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var select = $('#bedinfoBedId');
+                select.empty();
+                select.append('<option value="">Select Bed...</option>');
+                $.each(response.data, function(i, item) {
+                    select.append('<option value="' + item.id + '">' + item.label + '</option>');
+                });
+            }
+        }
+    });
+
+    $.ajax({
+        url: '/icd/api/dropdown/rooms',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var select = $('#bedinfoRoomId');
+                select.empty();
+                select.append('<option value="">Select Room...</option>');
+                $.each(response.data, function(i, item) {
+                    select.append('<option value="' + item.id + '">' + item.label + '</option>');
+                });
+            }
+        }
+    });
+
+    $.ajax({
+        url: '/icd/api/dropdown/admissions',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var select = $('#bedinfoAdmId');
+                select.empty();
+                select.append('<option value="">Select Admission...</option>');
+                $.each(response.data, function(i, item) {
+                    select.append('<option value="' + item.id + '">' + item.label + '</option>');
+                });
+            }
+        }
+    });
+}
+
+function saveBedinfo() {
+    var id = $('#bedinfoId').val();
+    var data = {
+        bedID: $('#bedinfoBedId').val(),
+        roomID: $('#bedinfoRoomId').val(),
+        asgAdmID: $('#bedinfoAdmId').val() || null,
+        startTimestamp: $('#bedinfoStartTime').val(),
+        status: $('#bedinfoStatus').val()
+    };
+
+    if (!data.bedID) {
+        showBedinfoMessage('Please select a bed', 'danger');
+        return;
+    }
+    if (!data.roomID) {
+        showBedinfoMessage('Please select a room', 'danger');
+        return;
+    }
+    if (!data.status) {
+        showBedinfoMessage('Please select a status', 'danger');
+        return;
+    }
+
+    var url = '/icd/api/bedinfo';
+    var method = 'POST';
+    if (id) {
+        url = '/icd/api/bedinfo/' + id;
+        method = 'PUT';
+    }
+
+    $.ajax({
+        url: url,
+        method: method,
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function(response) {
+            if (response.success) {
+                $('#bedinfoModal').modal('hide');
+                loadBedinfo();
+            } else {
+                showBedinfoMessage('Error: ' + response.error, 'danger');
+            }
+        },
+        error: function(xhr) {
+            try {
+                var response = JSON.parse(xhr.responseText);
+                showBedinfoMessage('Error: ' + response.error, 'danger');
+            } catch(e) {
+                showBedinfoMessage('Error: ' + xhr.statusText, 'danger');
+            }
+        }
+    });
+}
+
+function editBedinfo(id) {
+    $.ajax({
+        url: '/icd/api/bedinfo/' + id,
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var data = response.data;
+                $('#bedinfoModalLabel').text('Edit Bed Record');
+                $('#bedinfoId').val(data.biid);
+                $('#bedinfoBedId').val(data.bedid);
+                $('#bedinfoRoomId').val(data.roomid);
+                $('#bedinfoAdmId').val(data.asgadmid || '');
+                $('#bedinfoStartTime').val(data.starttimestamp);
+                $('#bedinfoStatus').val(data.status);
+                $('#bedinfoMessage').addClass('d-none');
+                $('#bedinfoModal').modal('show');
+            }
+        }
+    });
+}
+
+function deleteBedinfo() {
+    var id = $('#deleteBedinfoId').val();
+    $.ajax({
+        url: '/icd/api/bedinfo/' + id,
+        method: 'DELETE',
+        success: function(response) {
+            if (response.success) {
+                $('#deleteBedinfoModal').modal('hide');
+                loadBedinfo();
+            } else {
+                alert('Error: ' + response.error);
+            }
+        }
+    });
+}
+
+function showBedinfoMessage(message, type) {
+    var msg = $('#bedinfoMessage');
     msg.removeClass('d-none alert-success alert-danger').addClass('alert-' + type).text(message);
 }
 </script>

@@ -234,3 +234,41 @@ def delete_bed_service(bed_id):
 
 def get_all_signtypes_for_dropdown():
     return get_all_signtypes()
+
+def get_all_bedinfo_service():
+    return get_all_bedinfo()
+
+def get_bedinfo_by_id_service(biID):
+    return get_bedinfo_by_id(biID)
+
+def create_bedinfo_service(data):
+    if not data.get('bedID'):
+        raise ValueError("Bed is required")
+    if not data.get('roomID'):
+        raise ValueError("Room is required")
+    return create_bedinfo(data)
+
+def update_bedinfo_service(biID, data):
+    existing = get_bedinfo_by_id(biID)
+    if not existing:
+        raise ValueError("Bed info record not found")
+    if not data.get('bedID'):
+        raise ValueError("Bed is required")
+    if not data.get('roomID'):
+        raise ValueError("Room is required")
+    return update_bedinfo(biID, data)
+
+def delete_bedinfo_service(biID):
+    existing = get_bedinfo_by_id(biID)
+    if not existing:
+        raise ValueError("Bed info record not found")
+    return delete_bedinfo(biID)
+
+def get_all_beds_for_dropdown_service():
+    return get_all_beds_for_dropdown()
+
+def get_all_admissions_for_dropdown_service():
+    return get_all_admissions_for_dropdown()
+
+def get_all_rooms_for_dropdown_service():
+    return get_all_rooms_for_dropdown()

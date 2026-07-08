@@ -626,3 +626,156 @@ def delete_bed(bed_id):
         commit=True
     )
     return result[0] if result else None
+
+def get_all_bedinfo():
+    query = """
+        SELECT 
+            bi.biID,
+            bi.bedID,
+            bi.roomID,
+            bi.asgAdmID,
+            bi.startTimestamp,
+            bi.status,
+            b.cost as bed_cost,
+            r.name as room_name,
+            dep.name as department_name,
+            p.firstName || ' ' || p.lastName as patient_name,
+            a.admID
+        FROM bedInfo bi
+        JOIN bed b ON bi.bedID = b.bedID
+        JOIN room r ON bi.roomID = r.roomID
+        LEFT JOIN department dep ON r.departID = dep.departID
+        LEFT JOIN admission a ON bi.asgAdmID = a.admID
+        LEFT JOIN medicalRecord mr ON a.mID = mr.mID
+        LEFT JOIN patient p ON mr.pID = p.pID
+        ORDER BY bi.startTimestamp DESC
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        fetch_all=True,
+        fetch_dict=True
+    )
+
+def get_bedinfo_by_id(biID):
+    query = """
+        SELECT 
+            bi.biID,
+            bi.bedID,
+            bi.roomID,
+            bi.asgAdmID,
+            bi.startTimestamp,
+            bi.status,
+            b.cost as bed_cost,
+            r.name as room_name,
+            dep.name as department_name
+        FROM bedInfo bi
+        JOIN bed b ON bi.bedID = b.bedID
+        JOIN room r ON bi.roomID = r.roomID
+        LEFT JOIN department dep ON r.departID = dep.departID
+        WHERE bi.biID = %s
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        (biID,),
+        fetch_one=True,
+        fetch_dict=True
+    )
+
+def create_bedinfo(data):
+    query = """
+        INSERT INTO bedInfo (bedID, roomID, asgAdmID, startTimestamp, status)
+        VALUES (%s, %s, %s, %s, %s)
+        RETURNING biID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (
+            data.get('bedID'),
+            data.get('roomID'),
+            data.get('asgAdmID') or None,
+            data.get('startTimestamp') or 'CURRENT_TIMESTAMP',
+            data.get('status', 'Available')
+        ),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def update_bedinfo(biID, data):
+    query = """
+        UPDATE bedInfo
+        SET bedID = %s,
+            roomID = %s,
+            asgAdmID = %s,
+            startTimestamp = %s,
+            status = %s
+        WHERE biID = %s
+        RETURNING biID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (
+            data.get('bedID'),
+            data.get('roomID'),
+            data.get('asgAdmID') or None,
+            data.get('startTimestamp'),
+            data.get('status'),
+            biID
+        ),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def delete_bedinfo(biID):
+    query = "DELETE FROM bedInfo WHERE biID = %s RETURNING biID"
+    result = DatabaseConnection.execute_query(
+        query,
+        (biID,),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def get_all_beds_for_dropdown():
+    query = """
+        SELECT 
+            bedID as id,
+            'Bed #' || bedID || ' - $' || cost as label,
+            cost
+        FROM bed
+        ORDER BY bedID
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        fetch_all=True,
+        fetch_dict=True
+    )
+
+def get_all_admissions_for_dropdown():
+    query = """
+        SELECT 
+            admID as id,
+            'Admission #' || admID as label
+        FROM admission
+        ORDER BY admID DESC
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        fetch_all=True,
+        fetch_dict=True
+    )
+
+def get_all_rooms_for_dropdown():
+    query = """
+        SELECT 
+            roomID as id,
+            name as label
+        FROM room
+        ORDER BY name
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        fetch_all=True,
+        fetch_dict=True
+    )

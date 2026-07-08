@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Admissions Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body py-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0"><i class="bi bi-hospital"></i> Admissions</h2>
+                        <p class="mb-0 mt-2">Manage patient admissions and bed assignments</p>
+                    </div>
+                    <a href="{{ url_for('admission.create') }}" class="btn btn-light">
+                        <i class="bi bi-plus-circle"></i> New Admission
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> All Admissions</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped" id="admissionTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Patient</th>
+                                <th>Doctor</th>
+                                <th>Bed</th>
+                                <th>Room</th>
+                                <th>Department</th>
+                                <th>Status</th>
+                                <th>Cost</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admissionTableBody">
+                            <tr>
+                                <td colspan="9" class="text-center">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this admission?</p>
+                <p class="text-danger"><small>This will also discharge the patient!</small></p>
+                <input type="hidden" id="deleteAdmId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    loadAdmissions();
+});
+
+function loadAdmissions() {
+    $.ajax({
+        url: '/admissions/api/admissions',
+        method: 'GET',
+        success: function(response) {
+            var tbody = $('#admissionTableBody');
+            tbody.empty();
+            
+            if (response.success && response.data && response.data.length > 0) {
+                $.each(response.data, function(i, adm) {
+                    var statusBadge = adm.bed_status === 'Occupied' ? 
+                        '<span class="badge bg-success">Active</span>' : 
+                        '<span class="badge bg-secondary">Discharged</span>';
+                    
+                    var row = '<tr>';
+                    row += '<td>' + adm.admid + '</td>';
+                    row += '<td><strong>' + adm.patient_name + '</strong></td>';
+                    row += '<td>' + adm.doctor_name + '</td>';
+                    row += '<td>#' + (adm.bedid || '-') + '</td>';
+                    row += '<td>' + (adm.room_name || '-') + '</td>';
+                    row += '<td>' + (adm.department_name || '-') + '</td>';
+                    row += '<td>' + statusBadge + '</td>';
+                    row += '<td>$' + parseFloat(adm.cost || 0).toFixed(2) + '</td>';
+                    row += '<td>' +
+                        '<a href="/admissions/' + adm.admid + '" class="btn btn-sm btn-info"><i class="bi bi-eye"></i></a>' +
+                        '<button class="btn btn-sm btn-danger btn-delete-admission" data-id="' + adm.admid + '"><i class="bi bi-trash"></i></button>' +
+                        '</td>';
+                    row += '</tr>';
+                    tbody.append(row);
+                });
+            } else {
+                tbody.html('<tr><td colspan="9" class="text-center">No admissions found</td></tr>');
+            }
+        },
+        error: function() {
+            $('#admissionTableBody').html('<tr><td colspan="9" class="text-center text-danger">Error loading admissions</td></tr>');
+        }
+    });
+}
+
+$(document).on('click', '.btn-delete-admission', function() {
+    var id = $(this).data('id');
+    $('#deleteAdmId').val(id);
+    $('#deleteModal').modal('show');
+});
+
+$('#confirmDeleteBtn').on('click', function() {
+    var id = $('#deleteAdmId').val();
+    $.ajax({
+        url: '/admissions/api/admissions/' + id,
+        method: 'DELETE',
+        success: function(response) {
+            if (response.success) {
+                $('#deleteModal').modal('hide');
+                loadAdmissions();
+                alert('✅ Admission deleted successfully');
+            } else {
+                alert('❌ Error: ' + response.error);
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
