@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, render_template, request, redirect, sessio
 from app.services.auth_service import *
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
+mainPage_bp = Blueprint('mainPage', __name__)
 
 
 @auth_bp.route('/logout')
@@ -9,6 +10,8 @@ def logout():
     session.clear()
     return redirect('/auth/patient-login')
 
+
+@mainPage_bp.route('/')
 @auth_bp.route('/')
 @auth_bp.route('/patient-login', methods=['GET', 'POST'])
 def patient_login():

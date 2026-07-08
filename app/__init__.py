@@ -2,6 +2,7 @@ from flask import Flask
 from app.config import Config
 from app.database.connection import DatabaseConnection
 from app.routes.auth_routes import auth_bp
+from app.routes.auth_routes import mainPage_bp
 from app.routes.patient_routes import patient_bp
 from app.routes.staff_routes import staff_bp
 from app.routes.icd_routes import icd_bp
@@ -16,6 +17,7 @@ def create_app():
     DatabaseConnection.initialize_pool()
     
     app.register_blueprint(auth_bp)
+    app.register_blueprint(mainPage_bp)
     app.register_blueprint(patient_bp)
     app.register_blueprint(staff_bp)
     app.register_blueprint(icd_bp)
