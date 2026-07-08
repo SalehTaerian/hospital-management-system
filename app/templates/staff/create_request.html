@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block title %}Create Request{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body py-4">
+                <h2 class="mb-0"><i class="bi bi-plus-circle"></i> Create Request</h2>
+                <p class="mb-0 mt-2">Create a medicine or test request for a patient</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-body">
+                <form id="requestForm">
+                    <div class="mb-3">
+                        <label class="form-label">Patient</label>
+                        <input type="text" class="form-control" id="patientSearch" placeholder="Search by name or national code...">
+                        <input type="hidden" id="patientId">
+                        <input type="hidden" id="patientMID">
+                        <div id="patientSuggestions" class="list-group mt-1"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Department</label>
+                        <select class="form-control" id="departmentId" required>
+                            <option value="">Select Department...</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.id }}">{{ dept.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Request Type</label>
+                        <select class="form-control" id="requestType" required>
+                            <option value="">Select Type...</option>
+                            <option value="medicine">Medicine</option>
+                            <option value="test">Test</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3" id="medicineContainer" style="display:none;">
+                        <label class="form-label">Medicine</label>
+                        <select class="form-control" id="medicineId">
+                            <option value="">Select Medicine...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3" id="testContainer" style="display:none;">
+                        <label class="form-label">Test</label>
+                        <select class="form-control" id="testId">
+                            <option value="">Select Test...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Request Name</label>
+                        <input type="text" class="form-control" id="requestName" placeholder="Enter request name...">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="requestDescription" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Cost</label>
+                        <input type="number" class="form-control" id="requestCost" step="0.01" placeholder="0.00">
+                    </div>
+                    
+                    <div id="formMessage" class="alert d-none"></div>
+                    
+                    <button type="submit" class="btn btn-primary">Create Request</button>
+                    <a href="{{ url_for('request.doctor_requests') }}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    var searchTimeout;
+    
+    $('#requestType').on('change', function() {
+        var type = $(this).val();
+        $('#medicineContainer').hide();
+        $('#testContainer').hide();
+        
+        if (type === 'medicine') {
+            $('#medicineContainer').show();
+            loadMedicines();
+        } else if (type === 'test') {
+            $('#testContainer').show();
+            loadTests();
+        }
+    });
+    
+    $('#patientSearch').on('keyup', function() {
+        clearTimeout(searchTimeout);
+        var query = $(this).val().trim();
+        if (query.length < 2) {
+            $('#patientSuggestions').empty();
+            return;
+        }
+        searchTimeout = setTimeout(function() {
+            searchPatients(query);
+        }, 300);
+    });
+    
+    $('#requestForm').on('submit', function(e) {
+        e.preventDefault();
+        createRequest();
+    });
+});
+
+function searchPatients(query) {
+    $.ajax({
+        url: '/staff/api/patients/search?q=' + encodeURIComponent(query),
+        method: 'GET',
+        success: function(response) {
+            var container = $('#patientSuggestions');
+            container.empty();
+            
+            if (response.success && response.data && response.data.length > 0) {
+                $.each(response.data, function(i, patient) {
+                    container.append(
+                        '<a href="#" class="list-group-item list-group-item-action" ' +
+                        'onclick="selectPatient(' + patient.pid + ', \'' + patient.firstname + ' ' + patient.lastname + '\')">' +
+                        '<strong>' + patient.firstname + ' ' + patient.lastname + '</strong><br>' +
+                        '<small class="text-muted">' + patient.nationalcode + '</small>' +
+                        '</a>'
+                    );
+                });
+            }
+        }
+    });
+}
+
+function selectPatient(id, name) {
+    $('#patientId').val(id);
+    $('#patientSearch').val(name);
+    $('#patientSuggestions').empty();
+    
+    $.ajax({
+        url: '/requests/api/patient/mid?patient_id=' + id,
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                $('#patientMID').val(response.data.mID);
+            }
+        }
+    });
+}
+
+function loadMedicines() {
+    $.ajax({
+        url: '/requests/api/medicines',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var select = $('#medicineId');
+                select.empty();
+                select.append('<option value="">Select Medicine...</option>');
+                $.each(response.data, function(i, med) {
+                    select.append('<option value="' + med.id + '">' + med.name + '</option>');
+                });
+            }
+        }
+    });
+}
+
+function loadTests() {
+    $.ajax({
+        url: '/requests/api/tests',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var select = $('#testId');
+                select.empty();
+                select.append('<option value="">Select Test...</option>');
+                $.each(response.data, function(i, test) {
+                    select.append('<option value="' + test.id + '">' + test.name + ' ($' + parseFloat(test.cost || 0).toFixed(2) + ')</option>');
+                });
+            }
+        }
+    });
+}
+
+function createRequest() {
+    var type = $('#requestType').val();
+    var data = {
+        mID: $('#patientMID').val(),
+        departID: $('#departmentId').val(),
+        name: $('#requestName').val(),
+        description: $('#requestDescription').val(),
+        cost: $('#requestCost').val() || 0
+    };
+    
+    if (!data.mID) {
+        showMessage('Please select a patient', 'danger');
+        return;
+    }
+    if (!data.departID) {
+        showMessage('Please select a department', 'danger');
+        return;
+    }
+    if (!type) {
+        showMessage('Please select a request type', 'danger');
+        return;
+    }
+    if (!data.name) {
+        showMessage('Please enter a request name', 'danger');
+        return;
+    }
+    
+    var url = '/requests/api/';
+    if (type === 'medicine') {
+        data.medID = $('#medicineId').val();
+        if (!data.medID) {
+            showMessage('Please select a medicine', 'danger');
+            return;
+        }
+        url += 'medicine';
+    } else {
+        data.testID = $('#testId').val();
+        if (!data.testID) {
+            showMessage('Please select a test', 'danger');
+            return;
+        }
+        url += 'test';
+    }
+    
+    $.ajax({
+        url: url,
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function(response) {
+            if (response.success) {
+                showMessage('✅ Request created successfully!', 'success');
+                setTimeout(function() {
+                    window.location.href = '/requests/doctor';
+                }, 1500);
+            } else {
+                showMessage('❌ Error: ' + response.error, 'danger');
+            }
+        },
+        error: function(xhr) {
+            try {
+                var response = JSON.parse(xhr.responseText);
+                showMessage('❌ Error: ' + response.error, 'danger');
+            } catch(e) {
+                showMessage('❌ Error: ' + xhr.statusText, 'danger');
+            }
+        }
+    });
+}
+
+function showMessage(message, type) {
+    var msg = $('#formMessage');
+    msg.removeClass('d-none alert-success alert-danger')
+       .addClass('alert-' + type)
+       .text(message);
+}
+</script>
+{% endblock %}

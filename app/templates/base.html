@@ -71,6 +71,12 @@
                             <i class="bi bi-file-medical"></i> Medical Records
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'request.patient_requests' %}active{% endif %}" 
+                            href="{{ url_for('request.patient_requests') }}">
+                            <i class="bi bi-clipboard"></i> Requests
+                        </a>
+                    </li>
                     
                     {% elif session.get('user_role') in ['doctor', 'surgeon', 'nurse', 'officeStaff'] %}
                     <li class="nav-item">
@@ -99,6 +105,12 @@
                     </li>
                     
                     {% if session.get('user_role') == 'officeStaff' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'room.index' %}active{% endif %}" 
+                            href="{{ url_for('room.index') }}">
+                            <i class="bi bi-door-open"></i> Rooms
+                        </a>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'staff_management.index' %}active{% endif %}" 
                            href="{{ url_for('staff_management.index') }}">
@@ -132,7 +144,15 @@
                         </a>
                     </li>
                     {% endif %}
-                </ul>
+                    {% if session.get('user_role') == 'doctor' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'request.doctor_requests' %}active{% endif %}" 
+                        href="{{ url_for('request.doctor_requests') }}">
+                        <i class="bi bi-clipboard"></i> My Requests
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
 
                 <!-- Right Side - User Menu -->
                 <ul class="navbar-nav ms-auto">
@@ -236,7 +256,11 @@
     <!-- Footer -->
     <footer class="footer py-3 bg-light border-top mt-auto">
         <div class="container text-center">
-            <span class="text-muted">© 2024 Hospital Management System. All rights reserved.</span>
+            <span class="text-muted">
+                <a href="https://github.com/SalehTaerian/hospital-management-system">
+                    Hospital Management System by Saleh Taerian & Parsa Golbou
+                </a>
+            </span>
         </div>
     </footer>
 

@@ -7,6 +7,8 @@ from app.routes.staff_routes import staff_bp
 from app.routes.icd_routes import icd_bp
 from app.routes.staff_management_routes import staff_mgmt_bp
 from app.routes.shift_routes import shift_bp
+from app.routes.room_routes import room_bp
+from app.routes.request_routes import request_bp
 import logging
 
 def create_app():
@@ -21,6 +23,8 @@ def create_app():
     app.register_blueprint(icd_bp)
     app.register_blueprint(staff_mgmt_bp)
     app.register_blueprint(shift_bp)
+    app.register_blueprint(room_bp)
+    app.register_blueprint(request_bp)
     
     
     logging.basicConfig(level=logging.INFO)

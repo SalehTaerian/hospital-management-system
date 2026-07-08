@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+
+{% block title %}Room Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body py-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0"><i class="bi bi-door-open"></i> Room Management</h2>
+                        <p class="mb-0 mt-2">Manage hospital rooms and departments</p>
+                    </div>
+                    <button class="btn btn-light" id="createRoomBtn">
+                        <i class="bi bi-plus-circle"></i> Add Room
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> All Rooms</h5>
+                <span class="badge bg-secondary" id="roomCount">0 rooms</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped" id="roomTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Room Name</th>
+                                <th>Department</th>
+                                <th>Description</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="roomTableBody">
+                            <tr>
+                                <td colspan="5" class="text-center">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="roomModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="roomModalLabel">Add Room</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="roomForm">
+                    <input type="hidden" id="roomId">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Room Name</label>
+                        <input type="text" class="form-control" id="roomName" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Department</label>
+                        <select class="form-control" id="roomDepartment" required>
+                            <option value="">Select Department...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="roomDescription" rows="3"></textarea>
+                    </div>
+                    
+                    <div id="formMessage" class="alert d-none"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveRoomBtn">Save Room</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this room?</p>
+                <p class="text-danger"><small>This action cannot be undone!</small></p>
+                <input type="hidden" id="deleteRoomId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    loadRooms();
+    loadDepartments();
+    
+    $('#createRoomBtn').on('click', function() {
+        $('#roomModalLabel').text('Add Room');
+        $('#roomId').val('');
+        $('#roomForm')[0].reset();
+        $('#formMessage').addClass('d-none');
+        $('#roomModal').modal('show');
+    });
+    
+    $('#saveRoomBtn').on('click', function() {
+        saveRoom();
+    });
+    
+    $('#confirmDeleteBtn').on('click', function() {
+        deleteRoom();
+    });
+});
+
+function loadDepartments() {
+    $.ajax({
+        url: '/rooms/api/departments',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var select = $('#roomDepartment');
+                $.each(response.data, function(i, dept) {
+                    select.append('<option value="' + dept.departid + '">' + dept.name + '</option>');
+                });
+            }
+        }
+    });
+}
+
+function loadRooms() {
+    $.ajax({
+        url: '/rooms/api/rooms',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                renderTable(response.data);
+            } else {
+                $('#roomTableBody').html('<tr><td colspan="5" class="text-center text-danger">Failed to load rooms</td></tr>');
+            }
+        },
+        error: function() {
+            $('#roomTableBody').html('<tr><td colspan="5" class="text-center text-danger">Error loading rooms</td></tr>');
+        }
+    });
+}
+
+function renderTable(rooms) {
+    var tbody = $('#roomTableBody');
+    tbody.empty();
+    
+    if (!rooms || rooms.length === 0) {
+        tbody.html('<tr><td colspan="5" class="text-center">No rooms found</td></tr>');
+        $('#roomCount').text('0 rooms');
+        return;
+    }
+    
+    $('#roomCount').text(rooms.length + ' rooms');
+    
+    $.each(rooms, function(index, room) {
+        var row = '<tr>';
+        row += '<td>' + room.roomid + '</td>';
+        row += '<td><strong>' + room.name + '</strong></td>';
+        row += '<td>' + (room.department_name || 'N/A') + '</td>';
+        row += '<td>' + (room.description || '') + '</td>';
+        row += `
+            <td>
+                <button class="btn btn-sm btn-primary btn-edit-room" data-room-id="${room.roomid}">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-danger btn-delete-room" data-room-id="${room.roomid}" data-room-name="${room.name}">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+        row += '</tr>';
+        tbody.append(row);
+    });
+    
+    $('.btn-edit-room').on('click', function() {
+        var roomId = $(this).data('room-id');
+        editRoom(roomId);
+    });
+    
+    $('.btn-delete-room').on('click', function() {
+        var roomId = $(this).data('room-id');
+        var roomName = $(this).data('room-name');
+        $('#deleteRoomId').val(roomId);
+        $('#deleteModal').modal('show');
+    });
+}
+
+function editRoom(roomId) {
+    $.ajax({
+        url: '/rooms/api/rooms/' + roomId,
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var room = response.data;
+                $('#roomModalLabel').text('Edit Room');
+                $('#roomId').val(room.roomid);
+                $('#roomName').val(room.name);
+                $('#roomDepartment').val(room.departid);
+                $('#roomDescription').val(room.description || '');
+                $('#formMessage').addClass('d-none');
+                $('#roomModal').modal('show');
+            }
+        }
+    });
+}
+
+function saveRoom() {
+    var roomId = $('#roomId').val();
+    var data = {
+        name: $('#roomName').val(),
+        departID: $('#roomDepartment').val(),
+        description: $('#roomDescription').val()
+    };
+    
+    if (!data.name || !data.departID) {
+        showFormMessage('Please fill in all required fields', 'danger');
+        return;
+    }
+    
+    var url = '/rooms/api/rooms';
+    var method = 'POST';
+    
+    if (roomId) {
+        url = '/rooms/api/rooms/' + roomId;
+        method = 'PUT';
+    }
+    
+    $.ajax({
+        url: url,
+        method: method,
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function(response) {
+            if (response.success) {
+                $('#roomModal').modal('hide');
+                loadRooms();
+                showFormMessage('Room saved successfully!', 'success');
+            } else {
+                showFormMessage('Error: ' + response.error, 'danger');
+            }
+        },
+        error: function(xhr) {
+            try {
+                var response = JSON.parse(xhr.responseText);
+                showFormMessage('Error: ' + response.error, 'danger');
+            } catch(e) {
+                showFormMessage('Error: ' + xhr.statusText, 'danger');
+            }
+        }
+    });
+}
+
+function deleteRoom() {
+    var roomId = $('#deleteRoomId').val();
+    
+    $.ajax({
+        url: '/rooms/api/rooms/' + roomId,
+        method: 'DELETE',
+        success: function(response) {
+            if (response.success) {
+                $('#deleteModal').modal('hide');
+                loadRooms();
+                alert('✅ Room deleted successfully!');
+            } else {
+                alert('Error: ' + response.error);
+            }
+        }
+    });
+}
+
+function showFormMessage(message, type) {
+    var msg = $('#formMessage');
+    msg.removeClass('d-none alert-success alert-danger')
+       .addClass('alert-' + type)
+       .text(message);
+}
+</script>
+{% endblock %}
