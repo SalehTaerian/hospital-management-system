@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}My Requests{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body py-4">
+                <h2 class="mb-0"><i class="bi bi-clipboard"></i> My Requests</h2>
+                <p class="mb-0 mt-2">View and confirm your medical requests</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mt-4">
+    <li class="nav-item">
+        <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending">
+            <i class="bi bi-clock-history"></i> Pending
+            <span class="badge bg-warning" id="pendingCount">0</span>
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" id="all-tab" data-bs-toggle="tab" data-bs-target="#all">
+            <i class="bi bi-list-ul"></i> All Requests
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content mt-3">
+    <div class="tab-pane fade show active" id="pending">
+        <div class="card shadow">
+            <div class="card-body" id="pendingContainer">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary"></div>
+                    <p>Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="tab-pane fade" id="all">
+        <div class="card shadow">
+            <div class="card-body" id="allContainer">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary"></div>
+                    <p>Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    loadPendingRequests();
+    loadAllRequests();
+    
+    $('#pending-tab').on('click', function() {
+        loadPendingRequests();
+    });
+    $('#all-tab').on('click', function() {
+        loadAllRequests();
+    });
+});
+
+function loadPendingRequests() {
+    $.ajax({
+        url: '/requests/api/patient/pending',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#pendingContainer');
+            $('#pendingCount').text(response.data ? response.data.length : 0);
+            
+            if (response.success && response.data && response.data.length > 0) {
+                var html = '<div class="list-group">';
+                $.each(response.data, function(i, req) {
+                    var typeColor = req.request_type === 'Medicine' ? 'success' : 'info';
+                    html += `
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="mb-1">${req.name}</h5>
+                                    <p class="mb-1 text-muted">${req.description || 'No description'}</p>
+                                    <p class="mb-1 small">
+                                        <span class="badge bg-${typeColor}">${req.request_type}</span>
+                                        <span class="ms-2">Doctor: ${req.doctor_name}</span>
+                                        <span class="ms-2">Cost: $${parseFloat(req.cost || 0).toFixed(2)}</span>
+                                    </p>
+                                    <p class="mb-0 small text-muted">${req.createdat}</p>
+                                </div>
+                                <div>
+                                    <button class="btn btn-success btn-sm confirm-btn" 
+                                            data-request-id="${req.reqid}"
+                                            data-request-name="${req.name}">
+                                        <i class="bi bi-check-circle"></i> Confirm
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.html(html);
+                
+                $('.confirm-btn').on('click', function() {
+                    var id = $(this).data('request-id');
+                    var name = $(this).data('request-name');
+                    if (confirm('Confirm request: ' + name + '?')) {
+                        confirmRequest(id);
+                    }
+                });
+            } else {
+                container.html(`
+                    <div class="text-center py-4">
+                        <i class="bi bi-check-circle display-4 text-success"></i>
+                        <p class="mt-2">No pending requests</p>
+                    </div>
+                `);
+            }
+        },
+        error: function() {
+            $('#pendingContainer').html('<div class="alert alert-danger">Error loading requests</div>');
+        }
+    });
+}
+
+function loadAllRequests() {
+    $.ajax({
+        url: '/requests/api/patient',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#allContainer');
+            
+            if (response.success && response.data && response.data.length > 0) {
+                var html = `
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Doctor</th>
+                                    <th>Status</th>
+                                    <th>Confirmed</th>
+                                    <th>Cost</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                $.each(response.data, function(i, req) {
+                    var statusColors = {
+                        'Pending': 'warning',
+                        'Confirmed': 'success',
+                        'Cancelled': 'danger'
+                    };
+                    var color = statusColors[req.status] || 'secondary';
+                    var confirmed = req.ispatientconfirmed ? '✅ Yes' : '❌ No';
+                    
+                    html += `
+                        <tr>
+                            <td><strong>${req.name}</strong></td>
+                            <td><span class="badge bg-${req.request_type === 'Medicine' ? 'success' : 'info'}">${req.request_type}</span></td>
+                            <td>${req.doctor_name}</td>
+                            <td><span class="badge bg-${color}">${req.status}</span></td>
+                            <td>${confirmed}</td>
+                            <td>$${parseFloat(req.cost || 0).toFixed(2)}</td>
+                            <td>${req.createdat}</td>
+                        </tr>
+                    `;
+                });
+                html += '</tbody></table></div>';
+                container.html(html);
+            } else {
+                container.html(`
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox display-4 text-muted"></i>
+                        <p class="mt-2">No requests found</p>
+                    </div>
+                `);
+            }
+        },
+        error: function() {
+            $('#allContainer').html('<div class="alert alert-danger">Error loading requests</div>');
+        }
+    });
+}
+
+function confirmRequest(reqId) {
+    $.ajax({
+        url: '/requests/api/' + reqId + '/confirm',
+        method: 'POST',
+        success: function(response) {
+            if (response.success) {
+                alert('✅ Request confirmed successfully!');
+                loadPendingRequests();
+                loadAllRequests();
+            } else {
+                alert('❌ Error: ' + response.error);
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

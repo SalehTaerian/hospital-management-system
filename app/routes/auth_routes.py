@@ -129,7 +129,7 @@ def add_staff():
         except ValueError as e:
             return render_template('staff/add_staff.html', error=str(e), deps=departments)
     
-    return render_template('staff/add_staff.html', deps=departments)
+    return render_template('staff_management/add_staff.html', deps=departments)
 
 @auth_bp.route('/check-session')
 def check_session():
