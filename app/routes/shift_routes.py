@@ -7,7 +7,6 @@ shift_bp = Blueprint('shift', __name__, url_prefix='/shifts')
 
 @shift_bp.route('/')
 def index():
-    """Shift management page"""
     if not chief_office_staff_required():
         return redirect('/auth/staff-login')
     
@@ -15,17 +14,13 @@ def index():
 
 @shift_bp.route('/calendar')
 def calendar():
-    """Shift calendar view"""
     if not chief_office_staff_required():
         return redirect('/auth/staff-login')
     
     return render_template('shift_management/calendar.html')
 
-# ==================== API ROUTES ====================
-
 @shift_bp.route('/api/shifts', methods=['GET'])
 def api_get_shifts():
-    """Get all shifts"""
     if not chief_office_staff_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
@@ -37,7 +32,6 @@ def api_get_shifts():
 
 @shift_bp.route('/api/shifts/<int:shift_id>', methods=['GET'])
 def api_get_shift(shift_id):
-    """Get a specific shift"""
     if not chief_office_staff_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
@@ -59,7 +53,6 @@ def api_get_shift(shift_id):
 
 @shift_bp.route('/api/shifts', methods=['POST'])
 def api_create_shift():
-    """Create a new shift"""
     if not chief_office_staff_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
@@ -76,7 +69,6 @@ def api_create_shift():
 
 @shift_bp.route('/api/shifts/<int:shift_id>', methods=['PUT'])
 def api_update_shift(shift_id):
-    """Update a shift"""
     if not chief_office_staff_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
@@ -93,7 +85,6 @@ def api_update_shift(shift_id):
 
 @shift_bp.route('/api/shifts/<int:shift_id>', methods=['DELETE'])
 def api_delete_shift(shift_id):
-    """Delete a shift"""
     if not chief_office_staff_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
@@ -109,7 +100,6 @@ def api_delete_shift(shift_id):
 
 @shift_bp.route('/api/shifts/<int:shift_id>/assign', methods=['POST'])
 def api_assign_employee(shift_id):
-    """Assign an employee to a shift"""
     if not chief_office_staff_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
@@ -133,7 +123,6 @@ def api_assign_employee(shift_id):
 
 @shift_bp.route('/api/shifts/<int:shift_id>/remove', methods=['POST'])
 def api_remove_employee(shift_id):
-    """Remove an employee from a shift"""
     if not chief_office_staff_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
@@ -157,7 +146,6 @@ def api_remove_employee(shift_id):
 
 @shift_bp.route('/api/employees', methods=['GET'])
 def api_get_employees():
-    """Get all employees for assignment"""
     if not chief_office_staff_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
@@ -166,7 +154,6 @@ def api_get_employees():
 
 @shift_bp.route('/api/stats', methods=['GET'])
 def api_get_stats():
-    """Get shift statistics"""
     if not chief_office_staff_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
@@ -175,7 +162,6 @@ def api_get_stats():
 
 @shift_bp.route('/api/range', methods=['GET'])
 def api_get_shifts_by_range():
-    """Get shifts within a date range"""
     if not chief_office_staff_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
@@ -190,7 +176,6 @@ def api_get_shifts_by_range():
 
 @shift_bp.route('/api/employee/<int:employee_id>/shifts', methods=['GET'])
 def api_get_employee_shifts(employee_id):
-    """Get shifts for a specific employee"""
     if not chief_office_staff_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     

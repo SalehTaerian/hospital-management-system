@@ -1,10 +1,7 @@
 from app.database.connection import DatabaseConnection
 from datetime import datetime, timedelta
 
-# ==================== SHIFT MANAGEMENT QUERIES ====================
-
 def get_all_shifts(start_date=None, end_date=None):
-    """Get all shifts with employee assignments"""
     query = """
         SELECT 
             s.shiftID,
@@ -40,7 +37,6 @@ def get_all_shifts(start_date=None, end_date=None):
         fetch_dict=True
     )
     
-    # Convert time objects to strings for JSON serialization
     for row in results:
         if 'starttime' in row and row['starttime']:
             row['starttime'] = str(row['starttime'])
@@ -52,7 +48,6 @@ def get_all_shifts(start_date=None, end_date=None):
     return results
 
 def get_shift_by_id(shift_id):
-    """Get a specific shift by ID"""
     query = """
         SELECT 
             s.shiftID,
@@ -69,7 +64,6 @@ def get_shift_by_id(shift_id):
         fetch_dict=True
     )
     
-    # Convert time objects to strings
     if result:
         if 'starttime' in result and result['starttime']:
             result['starttime'] = str(result['starttime'])
@@ -81,7 +75,6 @@ def get_shift_by_id(shift_id):
     return result
 
 def get_employees_on_shift(shift_id):
-    """Get all employees assigned to a specific shift"""
     query = """
         SELECT 
             e.employeeID,
@@ -105,8 +98,6 @@ def get_employees_on_shift(shift_id):
     )
 
 def create_shift(shift_date, start_time, end_time):
-    """Create a new shift - convert times to TIMESTAMP format"""
-    # Convert to datetime objects for TIMESTAMP columns
     start_datetime = f"{shift_date} {start_time}:00"
     end_datetime = f"{shift_date} {end_time}:00"
     
@@ -124,7 +115,6 @@ def create_shift(shift_date, start_time, end_time):
     return result[0] if result else None
 
 def update_shift(shift_id, shift_date, start_time, end_time):
-    """Update an existing shift"""
     start_datetime = f"{shift_date} {start_time}:00"
     end_datetime = f"{shift_date} {end_time}:00"
     
@@ -143,7 +133,6 @@ def update_shift(shift_id, shift_date, start_time, end_time):
     return result[0] if result else None
 
 def delete_shift(shift_id):
-    """Delete a shift (also removes employee assignments via CASCADE)"""
     query = "DELETE FROM shift WHERE shiftID = %s RETURNING shiftID"
     result = DatabaseConnection.execute_query(
         query,
@@ -154,8 +143,6 @@ def delete_shift(shift_id):
     return result[0] if result else None
 
 def assign_employee_to_shift(employee_id, shift_id):
-    """Assign an employee to a shift"""
-    # Check if already assigned
     check_query = """
         SELECT 1 FROM employeeShift 
         WHERE employeeID = %s AND shiftID = %s
@@ -167,7 +154,7 @@ def assign_employee_to_shift(employee_id, shift_id):
     )
     
     if existing:
-        return False  # Already assigned
+        return False
     
     query = """
         INSERT INTO employeeShift (employeeID, shiftID)
@@ -183,7 +170,6 @@ def assign_employee_to_shift(employee_id, shift_id):
     return result[0] if result else None
 
 def remove_employee_from_shift(employee_id, shift_id):
-    """Remove an employee from a shift"""
     query = """
         DELETE FROM employeeShift 
         WHERE employeeID = %s AND shiftID = %s
@@ -198,7 +184,6 @@ def remove_employee_from_shift(employee_id, shift_id):
     return result[0] if result else None
 
 def get_all_employees():
-    """Get all employees for assignment dropdown"""
     query = """
         SELECT 
             e.employeeID as id,
@@ -217,7 +202,6 @@ def get_all_employees():
     )
 
 def get_available_employees_for_shift(shift_id):
-    """Get employees not assigned to a specific shift"""
     query = """
         SELECT 
             e.employeeID as id,
@@ -240,7 +224,6 @@ def get_available_employees_for_shift(shift_id):
     )
 
 def get_shift_statistics():
-    """Get shift statistics for dashboard - fixed column names"""
     query = """
         SELECT 
             COUNT(*) as total_shifts,
@@ -260,7 +243,6 @@ def get_shift_statistics():
     )
 
 def get_shifts_by_date_range(start_date, end_date):
-    """Get shifts within a date range with assignments"""
     query = """
         SELECT 
             s.shiftID,
@@ -283,7 +265,6 @@ def get_shifts_by_date_range(start_date, end_date):
         fetch_dict=True
     )
     
-    # Convert time objects to strings
     for row in results:
         if 'starttime' in row and row['starttime']:
             row['starttime'] = str(row['starttime'])
@@ -295,7 +276,6 @@ def get_shifts_by_date_range(start_date, end_date):
     return results
 
 def get_employee_shifts(employee_id, start_date=None, end_date=None):
-    """Get all shifts for a specific employee"""
     query = """
         SELECT 
             s.shiftID,
@@ -325,7 +305,6 @@ def get_employee_shifts(employee_id, start_date=None, end_date=None):
         fetch_dict=True
     )
     
-    # Convert time objects to strings
     for row in results:
         if 'starttime' in row and row['starttime']:
             row['starttime'] = str(row['starttime'])

@@ -75,7 +75,6 @@ def get_doctors_list():
     )
 
 def get_today_appointments():
-    """Get today's appointments"""
     query = """
         SELECT 
             a.appoID,
@@ -99,7 +98,6 @@ def get_today_appointments():
         fetch_dict=True
     )
     
-    # Convert time objects to strings
     for row in results:
         if 'time' in row and row['time']:
             row['time'] = str(row['time'])
@@ -374,7 +372,6 @@ def get_booked_appointments(doctor_id, shift_date):
         fetch_all=True, 
         fetch_dict=True
     )
-    # Convert time objects to strings for comparison
     for row in results:
         if 'time' in row and row['time']:
             row['time'] = str(row['time'])
@@ -390,17 +387,14 @@ def get_available_slots(doctor_id, shift_date, slot_duration_minutes=30):
     booked = get_booked_appointments(doctor_id, shift_date)
     booked_times = [apt['time'] for apt in booked]
     
-    # Handle both TIME and TIMESTAMP formats
     start_str = str(shift['starttime'])
     end_str = str(shift['endtime'])
     
-    # If it contains a space, it's a timestamp - extract just the time part
     if ' ' in start_str:
         start_str = start_str.split(' ')[1]
     if ' ' in end_str:
         end_str = end_str.split(' ')[1]
     
-    # Parse time strings
     try:
         start = datetime.strptime(start_str, '%H:%M:%S')
         end = datetime.strptime(end_str, '%H:%M:%S')
@@ -409,7 +403,6 @@ def get_available_slots(doctor_id, shift_date, slot_duration_minutes=30):
             start = datetime.strptime(start_str, '%H:%M')
             end = datetime.strptime(end_str, '%H:%M')
         except ValueError:
-            # If all else fails, use default values
             start = datetime.strptime('09:00:00', '%H:%M:%S')
             end = datetime.strptime('17:00:00', '%H:%M:%S')
     
@@ -560,7 +553,6 @@ def check_time_availability(doctor_id, date, time):
     return {'available': True, 'reason': 'Available'}
 
 def update_appointment_status(appointment_id, status):
-    """Update appointment status"""
     valid_statuses = ['Scheduled', 'Completed', 'Cancelled', 'No Show', 'Reserved', 'Not Reserved']
     if status not in valid_statuses:
         raise ValueError(f"Invalid status: {status}")

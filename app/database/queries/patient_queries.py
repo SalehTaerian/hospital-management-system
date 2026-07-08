@@ -2,7 +2,6 @@ from app.database.connection import DatabaseConnection
 from datetime import datetime
 
 def get_patient_upcoming_appointments(patient_id):
-    """Get upcoming appointments for a patient"""
     query = """
         SELECT 
             a.appoID,
@@ -36,7 +35,6 @@ def get_patient_upcoming_appointments(patient_id):
         fetch_dict=True
     )
     
-    # Convert time objects to strings
     for row in results:
         if 'time' in row and row['time']:
             row['time'] = str(row['time'])
@@ -50,7 +48,6 @@ def get_patient_upcoming_appointments(patient_id):
     return results
 
 def get_patient_past_appointments(patient_id):
-    """Get past appointments for a patient"""
     query = """
         SELECT 
             a.appoID,
@@ -82,7 +79,6 @@ def get_patient_past_appointments(patient_id):
         fetch_dict=True
     )
     
-    # Convert time objects to strings
     for row in results:
         if 'time' in row and row['time']:
             row['time'] = str(row['time'])
@@ -92,8 +88,6 @@ def get_patient_past_appointments(patient_id):
     return results
 
 def cancel_appointment(appointment_id, patient_id):
-    """Cancel an appointment (only if it belongs to the patient)"""
-    # Verify appointment belongs to patient
     check_query = """
         SELECT a.appoID 
         FROM appointment a
@@ -124,7 +118,6 @@ def cancel_appointment(appointment_id, patient_id):
     return result[0] if result else None
 
 def get_patient_billing(patient_id):
-    """Get billing information for a patient"""
     query = """
         SELECT 
             i.invID,
@@ -151,7 +144,6 @@ def get_patient_billing(patient_id):
         fetch_dict=True
     )
     
-    # Convert time/date objects to strings
     for row in results:
         if 'appointment_time' in row and row['appointment_time']:
             row['appointment_time'] = str(row['appointment_time'])

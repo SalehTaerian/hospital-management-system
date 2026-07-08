@@ -23,7 +23,6 @@ def home():
 
 @patient_bp.route('/medical-records')
 def medical_records():
-    """Patient medical records page"""
     if not patient_login_required():
         return redirect('/patient-login')
     
@@ -40,17 +39,13 @@ def medical_records():
 
 @patient_bp.route('/appointments')
 def appointments():
-    """Patient appointments page"""
     if not patient_login_required():
         return redirect('/patient-login')
     
     return render_template('patient/appointments.html')
 
-# ==================== API ROUTES ====================
-
 @patient_bp.route('/api/appointments/upcoming', methods=['GET'])
 def api_get_upcoming_appointments():
-    """Get upcoming appointments for the logged-in patient"""
     if not patient_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
@@ -60,7 +55,6 @@ def api_get_upcoming_appointments():
 
 @patient_bp.route('/api/appointments/past', methods=['GET'])
 def api_get_past_appointments():
-    """Get past appointments for the logged-in patient"""
     if not patient_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
@@ -70,7 +64,6 @@ def api_get_past_appointments():
 
 @patient_bp.route('/api/appointments/<int:appointment_id>/cancel', methods=['POST'])
 def api_cancel_appointment(appointment_id):
-    """Cancel an appointment"""
     if not patient_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
@@ -87,7 +80,6 @@ def api_cancel_appointment(appointment_id):
 
 @patient_bp.route('/api/billing', methods=['GET'])
 def api_get_billing():
-    """Get billing information for the logged-in patient"""
     if not patient_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     

@@ -156,7 +156,6 @@ def api_get_icd_dropdown():
     results = get_icd_dropdown()
     return jsonify({'success': True, 'data': results})
 
-# GET by ID routes
 @icd_bp.route('/api/icd/<int:icd_id>', methods=['GET'])
 def api_get_icd_by_id(icd_id):
     result = get_icd_by_id_service(icd_id)
