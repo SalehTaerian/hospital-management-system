@@ -318,3 +318,311 @@ def get_all_icd_for_dropdown():
         ORDER BY code
     """
     return DatabaseConnection.execute_query(query, fetch_all=True, fetch_dict=True)
+
+def get_all_signtypes():
+    query = """
+        SELECT 
+            sTypeID as id,
+            signName as name
+        FROM signType
+        ORDER BY signName
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        fetch_all=True,
+        fetch_dict=True
+    )
+
+def get_signtype_by_id(signtype_id):
+    query = """
+        SELECT 
+            sTypeID as id,
+            signName as name
+        FROM signType
+        WHERE sTypeID = %s
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        (signtype_id,),
+        fetch_one=True,
+        fetch_dict=True
+    )
+
+def create_signtype(data):
+    query = """
+        INSERT INTO signType (signName)
+        VALUES (%s)
+        RETURNING sTypeID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (data.get('name'),),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def update_signtype(signtype_id, data):
+    query = """
+        UPDATE signType
+        SET signName = %s
+        WHERE sTypeID = %s
+        RETURNING sTypeID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (data.get('name'), signtype_id),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def delete_signtype(signtype_id):
+    query = "DELETE FROM signType WHERE sTypeID = %s RETURNING sTypeID"
+    result = DatabaseConnection.execute_query(
+        query,
+        (signtype_id,),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def get_all_parameters():
+    query = """
+        SELECT 
+            parameterID as id,
+            parameterName as name,
+            min,
+            max,
+            average
+        FROM parameterList
+        ORDER BY parameterName
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        fetch_all=True,
+        fetch_dict=True
+    )
+
+def get_parameter_by_id(parameter_id):
+    query = """
+        SELECT 
+            parameterID as id,
+            parameterName as name,
+            min,
+            max,
+            average
+        FROM parameterList
+        WHERE parameterID = %s
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        (parameter_id,),
+        fetch_one=True,
+        fetch_dict=True
+    )
+
+def create_parameter(data):
+    query = """
+        INSERT INTO parameterList (parameterName, min, max, average)
+        VALUES (%s, %s, %s, %s)
+        RETURNING parameterID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (
+            data.get('name'),
+            data.get('min'),
+            data.get('max'),
+            data.get('average')
+        ),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def update_parameter(parameter_id, data):
+    query = """
+        UPDATE parameterList
+        SET parameterName = %s, min = %s, max = %s, average = %s
+        WHERE parameterID = %s
+        RETURNING parameterID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (
+            data.get('name'),
+            data.get('min'),
+            data.get('max'),
+            data.get('average'),
+            parameter_id
+        ),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def delete_parameter(parameter_id):
+    query = "DELETE FROM parameterList WHERE parameterID = %s RETURNING parameterID"
+    result = DatabaseConnection.execute_query(
+        query,
+        (parameter_id,),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def get_all_equipment():
+    query = """
+        SELECT 
+            equipID as id,
+            name,
+            MACAddress,
+            description,
+            e.sTypeID,
+            st.signName as sign_type_name
+        FROM equipment e
+        LEFT JOIN signType st ON e.sTypeID = st.sTypeID
+        ORDER BY e.name
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        fetch_all=True,
+        fetch_dict=True
+    )
+
+def get_equipment_by_id(equip_id):
+    query = """
+        SELECT 
+            equipID as id,
+            name,
+            MACAddress,
+            description,
+            sTypeID
+        FROM equipment
+        WHERE equipID = %s
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        (equip_id,),
+        fetch_one=True,
+        fetch_dict=True
+    )
+
+def create_equipment(data):
+    query = """
+        INSERT INTO equipment (name, MACAddress, description, sTypeID)
+        VALUES (%s, %s, %s, %s)
+        RETURNING equipID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (
+            data.get('name'),
+            data.get('macaddress'),
+            data.get('description'),
+            data.get('sTypeID')
+        ),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def update_equipment(equip_id, data):
+    query = """
+        UPDATE equipment
+        SET name = %s, MACAddress = %s, description = %s, sTypeID = %s
+        WHERE equipID = %s
+        RETURNING equipID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (
+            data.get('name'),
+            data.get('macaddress'),
+            data.get('description'),
+            data.get('sTypeID'),
+            equip_id
+        ),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def delete_equipment(equip_id):
+    query = "DELETE FROM equipment WHERE equipID = %s RETURNING equipID"
+    result = DatabaseConnection.execute_query(
+        query,
+        (equip_id,),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def get_all_beds():
+    query = """
+        SELECT 
+            bedID as id,
+            cost
+        FROM bed
+        ORDER BY bedID
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        fetch_all=True,
+        fetch_dict=True
+    )
+
+def get_bed_by_id(bed_id):
+    query = """
+        SELECT 
+            bedID as id,
+            cost
+        FROM bed
+        WHERE bedID = %s
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        (bed_id,),
+        fetch_one=True,
+        fetch_dict=True
+    )
+
+def create_bed(data):
+    query = """
+        INSERT INTO bed (cost)
+        VALUES (%s)
+        RETURNING bedID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (data.get('cost', 0),),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def update_bed(bed_id, data):
+    query = """
+        UPDATE bed
+        SET cost = %s
+        WHERE bedID = %s
+        RETURNING bedID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (data.get('cost', 0), bed_id),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def delete_bed(bed_id):
+    query = "DELETE FROM bed WHERE bedID = %s RETURNING bedID"
+    result = DatabaseConnection.execute_query(
+        query,
+        (bed_id,),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None

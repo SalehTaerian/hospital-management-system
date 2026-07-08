@@ -135,3 +135,102 @@ def search_all_codes(search_term, code_type='all'):
 
 def get_icd_dropdown():
     return get_all_icd_for_dropdown()
+
+def get_all_signtypes_service():
+    return get_all_signtypes()
+
+def get_signtype_by_id_service(signtype_id):
+    return get_signtype_by_id(signtype_id)
+
+def create_signtype_service(data):
+    if not data.get('name'):
+        raise ValueError("Sign type name is required")
+    return create_signtype(data)
+
+def update_signtype_service(signtype_id, data):
+    if not data.get('name'):
+        raise ValueError("Sign type name is required")
+    existing = get_signtype_by_id(signtype_id)
+    if not existing:
+        raise ValueError("Sign type not found")
+    return update_signtype(signtype_id, data)
+
+def delete_signtype_service(signtype_id):
+    existing = get_signtype_by_id(signtype_id)
+    if not existing:
+        raise ValueError("Sign type not found")
+    return delete_signtype(signtype_id)
+
+def get_all_parameters_service():
+    return get_all_parameters()
+
+def get_parameter_by_id_service(parameter_id):
+    return get_parameter_by_id(parameter_id)
+
+def create_parameter_service(data):
+    if not data.get('name'):
+        raise ValueError("Parameter name is required")
+    return create_parameter(data)
+
+def update_parameter_service(parameter_id, data):
+    if not data.get('name'):
+        raise ValueError("Parameter name is required")
+    existing = get_parameter_by_id(parameter_id)
+    if not existing:
+        raise ValueError("Parameter not found")
+    return update_parameter(parameter_id, data)
+
+def delete_parameter_service(parameter_id):
+    existing = get_parameter_by_id(parameter_id)
+    if not existing:
+        raise ValueError("Parameter not found")
+    return delete_parameter(parameter_id)
+
+def get_all_equipment_service():
+    return get_all_equipment()
+
+def get_equipment_by_id_service(equip_id):
+    return get_equipment_by_id(equip_id)
+
+def create_equipment_service(data):
+    if not data.get('name'):
+        raise ValueError("Equipment name is required")
+    return create_equipment(data)
+
+def update_equipment_service(equip_id, data):
+    if not data.get('name'):
+        raise ValueError("Equipment name is required")
+    existing = get_equipment_by_id(equip_id)
+    if not existing:
+        raise ValueError("Equipment not found")
+    return update_equipment(equip_id, data)
+
+def delete_equipment_service(equip_id):
+    existing = get_equipment_by_id(equip_id)
+    if not existing:
+        raise ValueError("Equipment not found")
+    return delete_equipment(equip_id)
+
+def get_all_beds_service():
+    return get_all_beds()
+
+def get_bed_by_id_service(bed_id):
+    return get_bed_by_id(bed_id)
+
+def create_bed_service(data):
+    return create_bed(data)
+
+def update_bed_service(bed_id, data):
+    existing = get_bed_by_id(bed_id)
+    if not existing:
+        raise ValueError("Bed not found")
+    return update_bed(bed_id, data)
+
+def delete_bed_service(bed_id):
+    existing = get_bed_by_id(bed_id)
+    if not existing:
+        raise ValueError("Bed not found")
+    return delete_bed(bed_id)
+
+def get_all_signtypes_for_dropdown():
+    return get_all_signtypes()
