@@ -3,13 +3,16 @@
 {% block title %}Patient Home{% endblock %}
 
 {% block content %}
+<!-- Hidden input for patient ID -->
+<input type="hidden" id="patientId" value="{{ session.get('user_id', 0) }}">
+
 <!-- Welcome Banner -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="card bg-primary text-white shadow">
             <div class="card-body py-4">
                 <h2 class="mb-0">
-                    <i class="bi bi-person-circle"></i> Welcome, {{ user or 'Patient' }}!
+                    <i class="bi bi-person-circle"></i> Welcome, {{ session.get('user_name', 'Patient') }}!
                 </h2>
                 <p class="mb-0 mt-2">Find and book appointments with our specialist doctors.</p>
             </div>
@@ -20,13 +23,16 @@
 <!-- Quick Actions -->
 <div class="row mb-4">
     <div class="col-md-4 mb-3">
-        <div class="card h-100 text-center shadow-sm">
-            <div class="card-body">
-                <i class="bi bi-search display-4 text-primary"></i>
-                <h5 class="mt-2">Search Doctors</h5>
-                <p class="text-muted small">Find doctors by name or specialization</p>
-            </div>
+    <div class="card h-100 text-center shadow-sm">
+        <div class="card-body">
+            <i class="bi bi-calendar-check display-4 text-primary"></i>
+            <h5 class="mt-2">My Appointments</h5>
+            <p class="text-muted small">View and manage your appointments</p>
+            <a href="{{ url_for('patient.appointments') }}" class="btn btn-primary btn-sm">
+                <i class="bi bi-calendar-check"></i> View Appointments
+            </a>
         </div>
+    </div>
     </div>
     <div class="col-md-4 mb-3">
         <div class="card h-100 text-center shadow-sm">
@@ -34,6 +40,9 @@
                 <i class="bi bi-calendar-plus display-4 text-success"></i>
                 <h5 class="mt-2">Book Appointment</h5>
                 <p class="text-muted small">Schedule a visit with a doctor</p>
+                <button class="btn btn-success btn-sm" id="bookAppointmentBtn">
+                    <i class="bi bi-calendar-plus"></i> Book Now
+                </button>
             </div>
         </div>
     </div>
@@ -43,6 +52,9 @@
                 <i class="bi bi-file-medical display-4 text-danger"></i>
                 <h5 class="mt-2">Medical Records</h5>
                 <p class="text-muted small">View your health history</p>
+                <a href="{{ url_for('patient.medical_records') }}" class="btn btn-danger btn-sm">
+                    <i class="bi bi-file-medical"></i> View Records
+                </a>
             </div>
         </div>
     </div>
@@ -97,8 +109,9 @@
                     <p class="card-text text-muted small">
                         <i class="bi bi-stethoscope"></i> {{ doctor.specialization or 'General Practitioner' }}
                     </p>
-                    <button class="btn btn-outline-primary btn-sm" 
-                            onclick="bookAppointment">
+                    <button class="btn btn-outline-primary btn-sm book-doctor-btn" 
+                            data-doctor-id="{{ doctor.employeeid }}"
+                            data-doctor-name="{{ doctor.firstname }} {{ doctor.lastname }}">
                         <i class="bi bi-calendar-plus"></i> Book Appointment
                     </button>
                 </div>
@@ -115,18 +128,45 @@
     {% endif %}
 </div>
 
-<!-- Medical Records Quick Link -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card bg-light shadow-sm">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                    <h5 class="mb-0"><i class="bi bi-file-medical"></i> Your Medical Records</h5>
-                    <small class="text-muted">View your complete health history</small>
-                </div>
-                <a href="{{ url_for('patient.medical_records') }}" class="btn btn-primary">
-                    View Records <i class="bi bi-arrow-left"></i>
-                </a>
+
+
+<!-- Appointment Modal -->
+<div class="modal fade" id="appointmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-calendar-plus"></i> Book Appointment</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="appointmentMessage" class="alert d-none"></div>
+                
+                <form id="appointmentForm">
+                    <div class="mb-3">
+                        <label class="form-label">Doctor</label>
+                        <input type="text" class="form-control" id="modalDoctorName" readonly>
+                        <input type="hidden" id="modalDoctorId">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Date</label>
+                        <input type="date" class="form-control" id="modalAppointmentDate" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Available Time Slots</label>
+                        <div id="timeSlotsContainer" class="d-flex flex-wrap gap-2">
+                            <p class="text-muted">Select a doctor and date to see available slots</p>
+                        </div>
+                        <input type="hidden" id="selectedTime">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="confirmAppointmentBtn" disabled>
+                    <i class="bi bi-check-circle"></i> Book Appointment
+                </button>
             </div>
         </div>
     </div>
@@ -135,11 +175,205 @@
 
 {% block scripts %}
 <script>
-function bookAppointment(doctorId) {
-    // Redirect to staff appointment page (or show a modal)
-    alert('Appointment booking will be available soon. Please visit the staff dashboard.');
-    // You can redirect to the staff appointments page:
-    // window.location.href = '/staff/appointments?doctor=' + doctorId;
+$(document).ready(function() {
+    // Get patient ID from hidden input
+    var patientId = parseInt(document.getElementById('patientId').value) || 0;
+    
+    // Debug - check if patient ID is set
+    console.log('Patient ID from session:', patientId);
+    
+    // If no patient ID, show error
+    if (patientId === 0) {
+        console.error('No patient ID found! Please login again.');
+    }
+    
+    // Set default date to tomorrow
+    var tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    var dateStr = tomorrow.toISOString().split('T')[0];
+    $('#modalAppointmentDate').val(dateStr);
+    
+    // Book Appointment button (main)
+    $('#bookAppointmentBtn').on('click', function() {
+        if (patientId === 0) {
+            alert('Please login again to book an appointment.');
+            return;
+        }
+        $('#appointmentModal').modal('show');
+        $('#modalDoctorName').val('Select a doctor from the list below');
+        $('#modalDoctorId').val('');
+        $('#confirmAppointmentBtn').prop('disabled', true);
+        $('#appointmentMessage').addClass('d-none');
+        $('#timeSlotsContainer').html('<p class="text-muted">Select a doctor to see available slots</p>');
+    });
+    
+    // Book Doctor buttons
+    $(document).on('click', '.book-doctor-btn', function() {
+        if (patientId === 0) {
+            alert('Please login again to book an appointment.');
+            return;
+        }
+        
+        var doctorId = $(this).data('doctor-id');
+        var doctorName = $(this).data('doctor-name');
+        
+        $('#modalDoctorName').val(doctorName);
+        $('#modalDoctorId').val(doctorId);
+        $('#appointmentMessage').addClass('d-none');
+        
+        // Load available slots
+        loadAvailableSlots(doctorId);
+        
+        $('#appointmentModal').modal('show');
+    });
+    
+    // Date change - reload slots
+    $('#modalAppointmentDate').on('change', function() {
+        var doctorId = $('#modalDoctorId').val();
+        if (doctorId) {
+            loadAvailableSlots(doctorId);
+        }
+    });
+    
+    // Confirm appointment
+    $('#confirmAppointmentBtn').on('click', function() {
+        bookAppointment(patientId);
+    });
+});
+
+function loadAvailableSlots(doctorId) {
+    var date = $('#modalAppointmentDate').val();
+    if (!date) {
+        $('#timeSlotsContainer').html('<p class="text-warning">Please select a date</p>');
+        return;
+    }
+    
+    $('#timeSlotsContainer').html('<p class="text-muted">Loading available slots...</p>');
+    $('#confirmAppointmentBtn').prop('disabled', true);
+    
+    $.ajax({
+        url: '/staff/api/doctors/' + doctorId + '/slots?date=' + date,
+        method: 'GET',
+        success: function(response) {
+            var container = $('#timeSlotsContainer');
+            container.empty();
+            
+            if (response.success && response.data && response.data.length > 0) {
+                var availableCount = 0;
+                $.each(response.data, function(i, slot) {
+                    if (slot.available) {
+                        availableCount++;
+                        container.append(
+                            '<button type="button" class="btn btn-outline-success time-slot" ' +
+                            'data-time="' + slot.time + '" onclick="selectTimeSlot(this, \'' + slot.time + '\')">' +
+                            slot.display +
+                            '</button>'
+                        );
+                    } else {
+                        container.append(
+                            '<button type="button" class="btn btn-outline-secondary time-slot" disabled>' +
+                            slot.display + ' ❌' +
+                            '</button>'
+                        );
+                    }
+                });
+                
+                if (availableCount === 0) {
+                    container.html('<p class="text-danger">No available slots for this doctor on this date</p>');
+                    $('#confirmAppointmentBtn').prop('disabled', true);
+                } else {
+                    $('#confirmAppointmentBtn').prop('disabled', true);
+                    container.prepend('<p class="text-muted small">Click on a green slot to select it</p>');
+                }
+            } else {
+                container.html('<p class="text-danger">No slots available for this doctor</p>');
+                $('#confirmAppointmentBtn').prop('disabled', true);
+            }
+        },
+        error: function(xhr) {
+            $('#timeSlotsContainer').html('<p class="text-danger">Error loading time slots</p>');
+            $('#confirmAppointmentBtn').prop('disabled', true);
+        }
+    });
+}
+
+function selectTimeSlot(element, time) {
+    // Deselect all
+    $('.time-slot').removeClass('btn-success active').addClass('btn-outline-success');
+    
+    // Select clicked
+    $(element).removeClass('btn-outline-success').addClass('btn-success active');
+    
+    $('#selectedTime').val(time);
+    $('#confirmAppointmentBtn').prop('disabled', false);
+}
+
+function bookAppointment(patientId) {
+    var doctorId = $('#modalDoctorId').val();
+    var date = $('#modalAppointmentDate').val();
+    var time = $('#selectedTime').val();
+    
+    console.log('Booking with patientId:', patientId);
+    
+    if (!patientId || patientId === 0) {
+        showMessage('You must be logged in to book an appointment. Please login again.', 'danger');
+        return;
+    }
+    if (!doctorId) {
+        showMessage('Please select a doctor', 'danger');
+        return;
+    }
+    if (!date) {
+        showMessage('Please select a date', 'danger');
+        return;
+    }
+    if (!time) {
+        showMessage('Please select a time slot', 'danger');
+        return;
+    }
+    
+    $('#confirmAppointmentBtn').prop('disabled', true).text('Booking...');
+    
+    $.ajax({
+        url: '/staff/api/appointments',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            patient_id: patientId,
+            doctor_id: doctorId,
+            date: date,
+            time: time
+        }),
+        success: function(response) {
+            if (response.success) {
+                showMessage('✅ Appointment booked successfully for ' + time, 'success');
+                $('#confirmAppointmentBtn').text('Booked!');
+                setTimeout(function() {
+                    $('#appointmentModal').modal('hide');
+                    location.reload();
+                }, 2000);
+            } else {
+                showMessage('❌ Error: ' + response.error, 'danger');
+                $('#confirmAppointmentBtn').prop('disabled', false).text('Book Appointment');
+            }
+        },
+        error: function(xhr) {
+            $('#confirmAppointmentBtn').prop('disabled', false).text('Book Appointment');
+            try {
+                var response = JSON.parse(xhr.responseText);
+                showMessage('❌ Error: ' + response.error, 'danger');
+            } catch(e) {
+                showMessage('❌ Error: ' + xhr.statusText, 'danger');
+            }
+        }
+    });
+}
+
+function showMessage(message, type) {
+    var msg = $('#appointmentMessage');
+    msg.removeClass('d-none alert-success alert-danger')
+       .addClass('alert-' + type)
+       .text(message);
 }
 </script>
 {% endblock %}

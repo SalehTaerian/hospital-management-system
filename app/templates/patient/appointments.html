@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block title %}My Appointments{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body py-4">
+                <h2 class="mb-0">
+                    <i class="bi bi-calendar-check"></i> My Appointments
+                </h2>
+                <p class="mb-0 mt-2">View and manage your appointments</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mt-4" id="appointmentTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming" type="button">
+            <i class="bi bi-clock"></i> Upcoming
+            <span class="badge bg-primary" id="upcomingCount">0</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="past-tab" data-bs-toggle="tab" data-bs-target="#past" type="button">
+            <i class="bi bi-clock-history"></i> Past
+            <span class="badge bg-secondary" id="pastCount">0</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="billing-tab" data-bs-toggle="tab" data-bs-target="#billing" type="button">
+            <i class="bi bi-receipt"></i> Billing
+        </button>
+    </li>
+</ul>
+
+<!-- Tab Content -->
+<div class="tab-content mt-3">
+    <!-- Upcoming Appointments -->
+    <div class="tab-pane fade show active" id="upcoming" role="tabpanel">
+        <div class="card shadow">
+            <div class="card-body" id="upcomingContainer">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p>Loading appointments...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Past Appointments -->
+    <div class="tab-pane fade" id="past" role="tabpanel">
+        <div class="card shadow">
+            <div class="card-body" id="pastContainer">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p>Loading appointments...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Billing -->
+    <div class="tab-pane fade" id="billing" role="tabpanel">
+        <div class="card shadow">
+            <div class="card-body" id="billingContainer">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p>Loading billing information...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    loadUpcomingAppointments();
+    loadPastAppointments();
+    loadBilling();
+    
+    // Reload data when tabs are clicked
+    $('#upcoming-tab').on('click', function() {
+        loadUpcomingAppointments();
+    });
+    $('#past-tab').on('click', function() {
+        loadPastAppointments();
+    });
+    $('#billing-tab').on('click', function() {
+        loadBilling();
+    });
+});
+
+function loadUpcomingAppointments() {
+    $.ajax({
+        url: '/patient/api/appointments/upcoming',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#upcomingContainer');
+            $('#upcomingCount').text(response.data ? response.data.length : 0);
+            
+            if (response.success && response.data && response.data.length > 0) {
+                var html = '<div class="list-group">';
+                $.each(response.data, function(i, apt) {
+                    var statusColors = {
+                        'Scheduled': 'info',
+                        'Reserved': 'primary',
+                        'Not Reserved': 'secondary'
+                    };
+                    var color = statusColors[apt.status] || 'secondary';
+                    
+                    html += `
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="mb-1">Dr. ${apt.doctor_name}</h5>
+                                    <p class="mb-1 text-muted">
+                                        <i class="bi bi-calendar3"></i> ${apt.date} 
+                                        <i class="bi bi-clock ms-2"></i> ${apt.time}
+                                    </p>
+                                    <p class="mb-1 small text-muted">${apt.specialization}</p>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-${color}">${apt.status}</span>
+                                    <br>
+                                    <button class="btn btn-sm btn-danger mt-2 cancel-btn" 
+                                            data-appointment-id="${apt.appoid}"
+                                            data-doctor="${apt.doctor_name}"
+                                            data-date="${apt.date}"
+                                            data-time="${apt.time}">
+                                        <i class="bi bi-x-circle"></i> Cancel
+                                    </button>
+                                </div>
+                            </div>
+                            ${apt.ispaid !== undefined ? `
+                            <div class="mt-2">
+                                <span class="badge bg-${apt.ispaid ? 'success' : 'warning'}">
+                                    ${apt.ispaid ? 'Paid' : 'Unpaid'}
+                                </span>
+                                <span class="ms-2 text-muted small">Amount: $${parseFloat(apt.patientshare || 0).toFixed(2)}</span>
+                            </div>` : ''}
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.html(html);
+                
+                // Attach cancel handlers
+                $('.cancel-btn').on('click', function() {
+                    var id = $(this).data('appointment-id');
+                    var doctor = $(this).data('doctor');
+                    var date = $(this).data('date');
+                    var time = $(this).data('time');
+                    cancelAppointment(id, doctor, date, time);
+                });
+            } else {
+                container.html(`
+                    <div class="text-center py-4">
+                        <i class="bi bi-check-circle display-4 text-success"></i>
+                        <p class="mt-2">No upcoming appointments</p>
+                        <a href="{{ url_for('patient.home') }}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-calendar-plus"></i> Book Appointment
+                        </a>
+                    </div>
+                `);
+            }
+        },
+        error: function() {
+            $('#upcomingContainer').html('<div class="alert alert-danger">Error loading appointments</div>');
+        }
+    });
+}
+
+function loadPastAppointments() {
+    $.ajax({
+        url: '/patient/api/appointments/past',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#pastContainer');
+            $('#pastCount').text(response.data ? response.data.length : 0);
+            
+            if (response.success && response.data && response.data.length > 0) {
+                var html = '<div class="list-group">';
+                $.each(response.data, function(i, apt) {
+                    var statusColors = {
+                        'Completed': 'success',
+                        'Cancelled': 'danger',
+                        'No Show': 'warning',
+                        'Scheduled': 'info'
+                    };
+                    var color = statusColors[apt.status] || 'secondary';
+                    
+                    html += `
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="mb-1">Dr. ${apt.doctor_name}</h5>
+                                    <p class="mb-1 text-muted">
+                                        <i class="bi bi-calendar3"></i> ${apt.date} 
+                                        <i class="bi bi-clock ms-2"></i> ${apt.time}
+                                    </p>
+                                    <p class="mb-1 small text-muted">${apt.specialization}</p>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-${color}">${apt.status}</span>
+                                    ${apt.ispaid !== undefined ? `
+                                    <br>
+                                    <span class="badge bg-${apt.ispaid ? 'success' : 'warning'} mt-1">
+                                        ${apt.ispaid ? 'Paid' : 'Unpaid'}
+                                    </span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.html(html);
+            } else {
+                container.html(`
+                    <div class="text-center py-4">
+                        <i class="bi bi-clock-history display-4 text-muted"></i>
+                        <p class="mt-2">No past appointments</p>
+                    </div>
+                `);
+            }
+        },
+        error: function() {
+            $('#pastContainer').html('<div class="alert alert-danger">Error loading past appointments</div>');
+        }
+    });
+}
+
+function loadBilling() {
+    $.ajax({
+        url: '/patient/api/billing',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#billingContainer');
+            
+            if (response.success && response.data && response.data.length > 0) {
+                var totalAmount = 0;
+                var totalPaid = 0;
+                var totalUnpaid = 0;
+                
+                var html = `
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6>Total Bills</h6>
+                                    <h4>${response.data.length}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h6>Paid</h6>
+                                    <h4 id="totalPaid">$0.00</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-warning">
+                                <div class="card-body text-center">
+                                    <h6>Unpaid</h6>
+                                    <h4 id="totalUnpaid">$0.00</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Date</th>
+                                    <th>Doctor</th>
+                                    <th>Appointment</th>
+                                    <th>Total</th>
+                                    <th>Patient Share</th>
+                                    <th>Insurance Share</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                $.each(response.data, function(i, bill) {
+                    totalAmount += parseFloat(bill.totalamount || 0);
+                    if (bill.ispaid) {
+                        totalPaid += parseFloat(bill.patientshare || 0);
+                    } else {
+                        totalUnpaid += parseFloat(bill.patientshare || 0);
+                    }
+                    
+                    html += `
+                        <tr>
+                            <td>#${bill.invid}</td>
+                            <td>${bill.issuedate}</td>
+                            <td>${bill.doctor_name}</td>
+                            <td>${bill.appointment_date} ${bill.appointment_time}</td>
+                            <td>$${parseFloat(bill.totalamount || 0).toFixed(2)}</td>
+                            <td>$${parseFloat(bill.patientshare || 0).toFixed(2)}</td>
+                            <td>$${parseFloat(bill.insuranceshare || 0).toFixed(2)}</td>
+                            <td>
+                                <span class="badge bg-${bill.ispaid ? 'success' : 'warning'}">
+                                    ${bill.ispaid ? 'Paid' : 'Unpaid'}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                
+                container.html(html);
+                $('#totalPaid').text('$' + totalPaid.toFixed(2));
+                $('#totalUnpaid').text('$' + totalUnpaid.toFixed(2));
+                
+            } else {
+                container.html(`
+                    <div class="text-center py-4">
+                        <i class="bi bi-receipt display-4 text-muted"></i>
+                        <p class="mt-2">No billing records found</p>
+                    </div>
+                `);
+            }
+        },
+        error: function() {
+            $('#billingContainer').html('<div class="alert alert-danger">Error loading billing information</div>');
+        }
+    });
+}
+
+function cancelAppointment(appointmentId, doctor, date, time) {
+    if (!confirm(`Are you sure you want to cancel your appointment with Dr. ${doctor} on ${date} at ${time}?`)) {
+        return;
+    }
+    
+    $.ajax({
+        url: `/patient/api/appointments/${appointmentId}/cancel`,
+        method: 'POST',
+        success: function(response) {
+            if (response.success) {
+                alert('✅ Appointment cancelled successfully!');
+                loadUpcomingAppointments();
+                loadPastAppointments();
+            } else {
+                alert('❌ Error: ' + response.error);
+            }
+        },
+        error: function(xhr) {
+            try {
+                var response = JSON.parse(xhr.responseText);
+                alert('❌ Error: ' + response.error);
+            } catch(e) {
+                alert('❌ Error: ' + xhr.statusText);
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

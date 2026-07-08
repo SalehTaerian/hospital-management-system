@@ -5,17 +5,16 @@ from app.services.auth_service import get_departments_service, is_logged_in
 
 staff_mgmt_bp = Blueprint('staff_management', __name__, url_prefix='/staff-management')
 
-def office_staff_required():
+def chief_office_staff_required():
     if not is_logged_in():
         return False
-    if session.get('access_level') != 'HospitalChief':
-        redirect('/staff/dashboard')
-        return True
+    if session.get('user_role') != 'officeStaff' or session.get('access_level') != 'HospitalChief':
+        return False
     return session.get('user_role') == 'officeStaff'
 
 @staff_mgmt_bp.route('/')
 def index():
-    if not office_staff_required():
+    if not chief_office_staff_required():
         return redirect('/staff-login')
     
     departments = get_departments_service()
@@ -23,7 +22,7 @@ def index():
 
 @staff_mgmt_bp.route('/add')
 def add_staff_page():
-    if not office_staff_required():
+    if not chief_office_staff_required():
         return redirect('/staff-login')
     
     departments = get_departments_service()
@@ -31,7 +30,7 @@ def add_staff_page():
 
 @staff_mgmt_bp.route('/edit/<int:employee_id>')
 def edit_staff_page(employee_id):
-    if not office_staff_required():
+    if not chief_office_staff_required():
         return redirect('/staff-login')
     
     try:
@@ -45,7 +44,7 @@ def edit_staff_page(employee_id):
 
 @staff_mgmt_bp.route('/api/staff', methods=['GET'])
 def api_get_all_staff():
-    if not office_staff_required():
+    if not chief_office_staff_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
     staff = get_all_staff_service()
@@ -53,7 +52,7 @@ def api_get_all_staff():
 
 @staff_mgmt_bp.route('/api/staff/<int:employee_id>', methods=['GET'])
 def api_get_staff(employee_id):
-    if not office_staff_required():
+    if not chief_office_staff_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
     try:
@@ -64,7 +63,7 @@ def api_get_staff(employee_id):
 
 @staff_mgmt_bp.route('/api/staff', methods=['POST'])
 def api_create_staff():
-    if not office_staff_required():
+    if not chief_office_staff_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
     try:
@@ -80,7 +79,7 @@ def api_create_staff():
 
 @staff_mgmt_bp.route('/api/staff/<int:employee_id>', methods=['PUT'])
 def api_update_staff(employee_id):
-    if not office_staff_required():
+    if not chief_office_staff_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
     try:
@@ -96,7 +95,7 @@ def api_update_staff(employee_id):
 
 @staff_mgmt_bp.route('/api/staff/<int:employee_id>', methods=['DELETE'])
 def api_delete_staff(employee_id):
-    if not office_staff_required():
+    if not chief_office_staff_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
     try:
@@ -114,7 +113,7 @@ def api_delete_staff(employee_id):
 
 @staff_mgmt_bp.route('/api/staff/<int:employee_id>/role', methods=['PUT'])
 def api_update_staff_role(employee_id):
-    if not office_staff_required():
+    if not chief_office_staff_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
     try:
@@ -135,7 +134,7 @@ def api_update_staff_role(employee_id):
 
 @staff_mgmt_bp.route('/api/stats', methods=['GET'])
 def api_get_staff_stats():
-    if not office_staff_required():
+    if not chief_office_staff_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
     total = get_staff_count_service()

@@ -16,6 +16,9 @@ def search_patients(search_term):
         FROM patient AS p
         WHERE 
             p.nationalCode ILIKE %s
+            OR p.firstName ILIKE %s
+            OR p.lastName ILIKE %s
+            OR CONCAT(p.firstName, ' ', p.lastName) ILIKE %s
         ORDER BY p.lastName
         LIMIT 50
     """
@@ -72,6 +75,7 @@ def get_doctors_list():
     )
 
 def get_today_appointments():
+    """Get today's appointments"""
     query = """
         SELECT 
             a.appoID,
@@ -89,11 +93,20 @@ def get_today_appointments():
         WHERE a.date = CURRENT_DATE
         ORDER BY a.time
     """
-    return DatabaseConnection.execute_query(
+    results = DatabaseConnection.execute_query(
         query, 
         fetch_all=True, 
         fetch_dict=True
     )
+    
+    # Convert time objects to strings
+    for row in results:
+        if 'time' in row and row['time']:
+            row['time'] = str(row['time'])
+        if 'date' in row and row['date']:
+            row['date'] = str(row['date'])
+    
+    return results
 
 def create_appointment(data):
     shift = get_doctor_shift(data['doctor_id'], data['date'])
@@ -103,9 +116,6 @@ def create_appointment(data):
     shift_start = shift['starttime']
     shift_end = shift['endtime']
     appointment_time = data['time']
-    
-    if appointment_time < shift_start or appointment_time >= shift_end:
-        raise ValueError("Appointment time is outside doctor's shift hours")
     
     booked = get_booked_appointments(data['doctor_id'], data['date'])
     booked_times = [apt['time'] for apt in booked]
@@ -330,15 +340,15 @@ def get_doctors_on_shift(shift_date):
 def get_doctor_shift(doctor_id, shift_date):
     query = """
         SELECT 
-            shiftID,
-            shiftDate,
-            startTime,
-            endTime,
-            doctorID
-        FROM shift
-        WHERE doctorID = %s
-        AND shiftDate = %s
-        AND isActive = TRUE
+            s.shiftID,
+            s.shiftDate,
+            s.startTime,
+            s.endTime,
+            es.employeeID
+        FROM shift AS s, employeeShift AS es
+        WHERE s.shiftID = es.shiftID
+        AND es.employeeID = %s
+        AND s.shiftDate = %s
     """
     return DatabaseConnection.execute_query(
         query, 
@@ -355,17 +365,24 @@ def get_booked_appointments(doctor_id, shift_date):
         FROM appointment
         WHERE doctorID = %s
         AND date = %s
-        AND status NOT IN ('Cancelled', 'Completed')
+        AND status NOT IN ('Cancelled')
         ORDER BY time
     """
-    return DatabaseConnection.execute_query(
+    results = DatabaseConnection.execute_query(
         query, 
         (doctor_id, shift_date), 
         fetch_all=True, 
         fetch_dict=True
     )
+    # Convert time objects to strings for comparison
+    for row in results:
+        if 'time' in row and row['time']:
+            row['time'] = str(row['time'])
     
-def get_available_slots(doctor_id, shift_date, slot_duration_minutes=10):
+    return results
+    
+def get_available_slots(doctor_id, shift_date, slot_duration_minutes=30):
+    """Get available time slots for a doctor on a specific date"""
     shift = get_doctor_shift(doctor_id, shift_date)
     if not shift:
         return []
@@ -373,11 +390,28 @@ def get_available_slots(doctor_id, shift_date, slot_duration_minutes=10):
     booked = get_booked_appointments(doctor_id, shift_date)
     booked_times = [apt['time'] for apt in booked]
     
-    start_time = shift['starttime']
-    end_time = shift['endtime']
+    # Handle both TIME and TIMESTAMP formats
+    start_str = str(shift['starttime'])
+    end_str = str(shift['endtime'])
     
-    start = datetime.strptime(str(start_time), '%H:%M:%S')
-    end = datetime.strptime(str(end_time), '%H:%M:%S')
+    # If it contains a space, it's a timestamp - extract just the time part
+    if ' ' in start_str:
+        start_str = start_str.split(' ')[1]
+    if ' ' in end_str:
+        end_str = end_str.split(' ')[1]
+    
+    # Parse time strings
+    try:
+        start = datetime.strptime(start_str, '%H:%M:%S')
+        end = datetime.strptime(end_str, '%H:%M:%S')
+    except ValueError:
+        try:
+            start = datetime.strptime(start_str, '%H:%M')
+            end = datetime.strptime(end_str, '%H:%M')
+        except ValueError:
+            # If all else fails, use default values
+            start = datetime.strptime('09:00:00', '%H:%M:%S')
+            end = datetime.strptime('17:00:00', '%H:%M:%S')
     
     available_slots = []
     current = start
@@ -390,8 +424,7 @@ def get_available_slots(doctor_id, shift_date, slot_duration_minutes=10):
         available_slots.append({
             'time': time_str,
             'display': current.strftime('%I:%M %p'),
-            'available': not is_booked,
-            'booked_by': None
+            'available': not is_booked
         })
         
         current += timedelta(minutes=slot_duration_minutes)

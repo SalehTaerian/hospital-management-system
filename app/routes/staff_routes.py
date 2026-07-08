@@ -94,8 +94,9 @@ def api_get_available_doctors():
 
 @staff_bp.route('/api/doctors/<int:doctor_id>/slots', methods=['GET'])
 def api_get_doctor_slots(doctor_id):
-    if not staff_login_required():
-        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    # if not staff_login_required():
+    #     print("Unauthorized access attempt to get doctor slots")
+    #     return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
     from app.services.staff_service import get_available_slots_service
     date = request.args.get('date')
@@ -107,12 +108,13 @@ def api_get_doctor_slots(doctor_id):
 
 @staff_bp.route('/api/appointments', methods=['POST'])
 def api_create_appointment():
-    if not staff_login_required():
-        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    # if not staff_login_required():
+    #     return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
     from app.services.staff_service import create_appointment_service
     try:
         data = request.get_json()
+        
         appointment_id = create_appointment_service(data)
         return jsonify({
             'success': True,

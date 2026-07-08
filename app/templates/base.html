@@ -4,33 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Hospital Management System{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
         body {
             background-color: #f8f9fa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
         .navbar-brand {
             font-weight: bold;
         }
-        .tab-content {
-            padding: 20px 0;
+        .card {
+            border: none;
+            border-radius: 10px;
         }
-        .table-hover tbody tr:hover {
-            background-color: #f0f8ff;
+        .card-header {
+            border-radius: 10px 10px 0 0 !important;
         }
-        .action-buttons .btn {
-            margin: 0 2px;
+        .footer {
+            margin-top: auto;
         }
-        .search-box {
-            max-width: 300px;
+        .nav-link.active {
+            font-weight: bold;
         }
-        .modal-header {
-            background-color: #f8f9fa;
-        }
-        .required-field::after {
-            content: " *";
-            color: red;
+        .hover-shadow:hover {
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+            transition: box-shadow 0.3s ease;
         }
     </style>
     {% block extra_css %}{% endblock %}
@@ -39,31 +40,208 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('icd.manage_icd') }}">
+            <!-- Left Side - Brand -->
+            <a class="navbar-brand" href="{{ url_for('auth.patient_login') }}">
                 <i class="bi bi-hospital"></i> Hospital MS
             </a>
+            
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
+            
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <!-- Left Side - Navigation Links -->
+                <ul class="navbar-nav me-auto">
+                    {% if session.get('user_role') == 'patient' %}
                     <li class="nav-item">
-                        <a class="nav-link active" href="{{ url_for('icd.manage_icd') }}">
-                            <i class="bi bi-code-square"></i> ICD Management
+                        <a class="nav-link {% if request.endpoint == 'patient.home' %}active{% endif %}" 
+                           href="{{ url_for('patient.home') }}">
+                            <i class="bi bi-house"></i> Home
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'patient.appointments' %}active{% endif %}" 
+                           href="{{ url_for('patient.appointments') }}">
+                            <i class="bi bi-calendar-check"></i> Appointments
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'patient.medical_records' %}active{% endif %}" 
+                           href="{{ url_for('patient.medical_records') }}">
+                            <i class="bi bi-file-medical"></i> Medical Records
+                        </a>
+                    </li>
+                    
+                    {% elif session.get('user_role') in ['doctor', 'surgeon', 'nurse', 'officeStaff'] %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'staff.dashboard' %}active{% endif %}" 
+                           href="{{ url_for('staff.dashboard') }}">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'staff.patients' %}active{% endif %}" 
+                           href="{{ url_for('staff.patients') }}">
+                            <i class="bi bi-people"></i> Patients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'staff.appointments' %}active{% endif %}" 
+                           href="{{ url_for('staff.appointments') }}">
+                            <i class="bi bi-calendar-check"></i> Appointments
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'staff.surgeries' %}active{% endif %}" 
+                           href="{{ url_for('staff.surgeries') }}">
+                            <i class="bi bi-scissors"></i> Surgeries
+                        </a>
+                    </li>
+                    
+                    {% if session.get('user_role') == 'officeStaff' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'staff_management.index' %}active{% endif %}" 
+                           href="{{ url_for('staff_management.index') }}">
+                            <i class="bi bi-people"></i> Staff Management
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'shift.index' %}active{% endif %}" 
+                           href="{{ url_for('shift.index') }}">
+                            <i class="bi bi-clock"></i> Shifts
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'icd.manage_icd' %}active{% endif %}" 
+                           href="{{ url_for('icd.manage_icd') }}">
+                            <i class="bi bi-code-square"></i> ICD Codes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'auth.add_staff' %}active{% endif %}" 
+                           href="{{ url_for('auth.add_staff') }}">
+                            <i class="bi bi-person-plus"></i> Add Staff
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% elif session.get('user_role') == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin">
+                            <i class="bi bi-shield-lock"></i> Admin Panel
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+
+                <!-- Right Side - User Menu -->
+                <ul class="navbar-nav ms-auto">
+                    {% if session.get('user_role') %}
+                        <!-- User is Logged In -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
+                               data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle"></i> 
+                                {{ session.get('user_name', 'User') }}
+                                <span class="badge bg-light text-dark ms-1">
+                                    {% if session.get('user_role') == 'patient' %}
+                                        Patient
+                                    {% elif session.get('user_role') == 'doctor' %}
+                                        Doctor
+                                    {% elif session.get('user_role') == 'surgeon' %}
+                                        Surgeon
+                                    {% elif session.get('user_role') == 'nurse' %}
+                                        Nurse
+                                    {% elif session.get('user_role') == 'officeStaff' %}
+                                        Staff
+                                    {% else %}
+                                        {{ session.get('user_role') }}
+                                    {% endif %}
+                                </span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><span class="dropdown-item-text text-muted small">
+                                    <i class="bi bi-person"></i> {{ session.get('user_name', 'User') }}
+                                </span></li>
+                                <li><hr class="dropdown-divider"></li>
+                                
+                                {% if session.get('user_role') == 'patient' %}
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('patient.appointments') }}">
+                                        <i class="bi bi-calendar-check"></i> My Appointments
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('patient.medical_records') }}">
+                                        <i class="bi bi-file-medical"></i> Medical Records
+                                    </a>
+                                </li>
+                                {% endif %}
+                                
+                                <li>
+                                    <a class="dropdown-item text-danger" href="
+                                    {% if session.get('user_role') == 'patient' %}
+                                        {{ url_for('auth.patient_logout') }}
+                                    {% else %}
+                                        {{ url_for('auth.staff_logout') }}
+                                    {% endif %}
+                                    ">
+                                        <i class="bi bi-box-arrow-right"></i> Logout
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <!-- User is Logged Out -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.patient_login') }}">
+                                <i class="bi bi-box-arrow-in-right"></i> Login
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.patient_register') }}">
+                                <i class="bi bi-person-plus"></i> Sign Up
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.staff_login') }}">
+                                <i class="bi bi-person-badge"></i> Staff
+                            </a>
+                        </li>
+                    {% endif %}
                 </ul>
             </div>
         </div>
     </nav>
 
+    <!-- Flash Messages -->
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
     <!-- Main Content -->
-    <div class="container py-4">
+    <div class="container py-4 flex-grow-1">
         {% block content %}{% endblock %}
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Footer -->
+    <footer class="footer py-3 bg-light border-top mt-auto">
+        <div class="container text-center">
+            <span class="text-muted">© 2024 Hospital Management System. All rights reserved.</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

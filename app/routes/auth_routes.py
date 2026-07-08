@@ -95,7 +95,7 @@ def staff_login():
 @auth_bp.route('/staff-logout')
 def staff_logout():
     logout_employee()
-    return redirect('auth/staff-login')
+    return redirect('/auth/staff-login')
 
 @auth_bp.route('/add-staff', methods=['GET', 'POST'])
 def add_staff():
@@ -127,3 +127,9 @@ def add_staff():
             return render_template('staff/add_staff.html', error=str(e), deps=departments)
     
     return render_template('staff/add_staff.html', deps=departments)
+
+@auth_bp.route('/check-session')
+def check_session():
+    return {
+        'session': dict(session)
+    }

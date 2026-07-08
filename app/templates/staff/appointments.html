@@ -1,24 +1,25 @@
 {% extends "base.html" %}
 
-{% block title %}Appointments{% endblock %}
+{% block title %}Staff - Appointments{% endblock %}
 
 {% block content %}
 <div class="row">
     <div class="col-12">
         <h2><i class="bi bi-calendar-plus"></i> Book Appointment</h2>
-        <p class="text-muted">Select a patient, date, and doctor to book an appointment</p>
+        <p class="text-muted">Search for a patient, select a doctor, and book an appointment</p>
     </div>
 </div>
 
 <div class="row">
     <div class="col-md-8 mx-auto">
-        <div class="card">
+        <div class="card shadow">
             <div class="card-body">
                 <form id="appointmentForm">
                     <!-- Patient Search -->
                     <div class="mb-3">
                         <label class="form-label">Patient</label>
-                        <input type="text" class="form-control" id="patientSearch" placeholder="Search by national code...">
+                        <input type="text" class="form-control" id="patientSearch" 
+                               placeholder="Search by name or national code...">
                         <input type="hidden" id="patientId">
                         <div id="patientSuggestions" class="list-group mt-1"></div>
                     </div>
@@ -54,10 +55,10 @@
     </div>
 </div>
 
-<!-- Today's Appointments with Status Management -->
+<!-- Today's Appointments -->
 <div class="row mt-4">
     <div class="col-12">
-        <div class="card">
+        <div class="card shadow">
             <div class="card-header">
                 <h5><i class="bi bi-calendar-event"></i> Today's Appointments</h5>
             </div>
@@ -113,7 +114,7 @@ $(document).ready(function() {
     // Load today's appointments
     loadTodayAppointments();
     
-    // Patient search
+    // Patient search with suggestions
     $('#patientSearch').on('keyup', function() {
         clearTimeout(searchTimeout);
         var query = $(this).val().trim();
@@ -163,24 +164,34 @@ $(document).ready(function() {
 
 function searchPatients(query) {
     $.ajax({
-        url: `/staff/api/patients/search?q=${encodeURIComponent(query)}`,
+        url: '/staff/api/patients/search?q=' + encodeURIComponent(query),
         method: 'GET',
         success: function(response) {
             var container = $('#patientSuggestions');
             container.empty();
-            if (response.success && response.data.length > 0) {
+            
+            if (response.success && response.data && response.data.length > 0) {
                 $.each(response.data, function(i, patient) {
-                    container.append(`
-                        <a href="#" class="list-group-item list-group-item-action" 
-                           onclick="selectPatient(${patient.pid}, '${patient.firstname} ${patient.lastname}')">
-                            ${patient.firstname} ${patient.lastname} - ${patient.nationalcode}
-                            <span class="badge bg-secondary float-end">${patient.age || 'N/A'} years</span>
-                        </a>
-                    `);
+                    var displayName = patient.firstname + ' ' + patient.lastname;
+                    var info = patient.nationalcode;
+                    if (patient.phonenumber) {
+                        info += ' | ' + patient.phonenumber;
+                    }
+                    container.append(
+                        '<a href="#" class="list-group-item list-group-item-action" ' +
+                        'onclick="selectPatient(' + patient.pid + ', \'' + displayName + '\')">' +
+                        '<strong>' + displayName + '</strong><br>' +
+                        '<small class="text-muted">' + info + '</small>' +
+                        '</a>'
+                    );
                 });
             } else {
-                container.append(`<span class="text-muted">No patients found</span>`);
+                container.append('<span class="text-muted p-2">No patients found</span>');
             }
+        },
+        error: function(xhr) {
+            console.error('Search error:', xhr);
+            $('#patientSuggestions').html('<span class="text-danger p-2">Error searching patients</span>');
         }
     });
 }
@@ -198,16 +209,17 @@ function loadAvailableDoctors() {
     $('#doctorId').html('<option value="">Loading doctors...</option>');
     
     $.ajax({
-        url: `/staff/api/doctors/available?date=${date}`,
+        url: '/staff/api/doctors/available?date=' + date,
         method: 'GET',
         success: function(response) {
             var select = $('#doctorId');
             select.html('<option value="">Select Doctor...</option>');
             
-            if (response.success && response.data.length > 0) {
+            if (response.success && response.data && response.data.length > 0) {
                 $.each(response.data, function(i, doctor) {
-                    var label = `${doctor.name} (${doctor.specialization}) - ${doctor.available_count} slots available`;
-                    select.append(`<option value="${doctor.id}">${label}</option>`);
+                    var label = doctor.name + ' (' + doctor.specialization + ') - ' + 
+                               doctor.available_count + ' slots available';
+                    select.append('<option value="' + doctor.id + '">' + label + '</option>');
                 });
             } else {
                 select.append('<option value="">No doctors on shift for this date</option>');
@@ -225,32 +237,31 @@ function loadTimeSlots(doctorId) {
     
     var container = $('#timeSlotsContainer');
     container.html('<p class="text-muted">Loading time slots...</p>');
+    $('#bookBtn').prop('disabled', true);
     
     $.ajax({
-        url: `/staff/api/doctors/${doctorId}/slots?date=${date}`,
+        url: '/staff/api/doctors/' + doctorId + '/slots?date=' + date,
         method: 'GET',
         success: function(response) {
             container.empty();
             
-            if (response.success && response.data.length > 0) {
+            if (response.success && response.data && response.data.length > 0) {
                 var availableCount = 0;
                 $.each(response.data, function(i, slot) {
                     if (slot.available) {
                         availableCount++;
-                        container.append(`
-                            <button type="button" 
-                                    class="btn btn-outline-success time-slot" 
-                                    data-time="${slot.time}"
-                                    onclick="selectTimeSlot(this, '${slot.time}')">
-                                ${slot.display}
-                            </button>
-                        `);
+                        container.append(
+                            '<button type="button" class="btn btn-outline-success time-slot" ' +
+                            'data-time="' + slot.time + '" onclick="selectTimeSlot(this, \'' + slot.time + '\')">' +
+                            slot.display +
+                            '</button>'
+                        );
                     } else {
-                        container.append(`
-                            <button type="button" class="btn btn-outline-secondary time-slot" disabled>
-                                ${slot.display} ❌
-                            </button>
-                        `);
+                        container.append(
+                            '<button type="button" class="btn btn-outline-secondary time-slot" disabled>' +
+                            slot.display + ' ❌' +
+                            '</button>'
+                        );
                     }
                 });
                 
@@ -259,9 +270,10 @@ function loadTimeSlots(doctorId) {
                     $('#bookBtn').prop('disabled', true);
                 } else {
                     $('#bookBtn').prop('disabled', true);
+                    container.prepend('<p class="text-muted small">Click on a green slot to select it</p>');
                 }
             } else {
-                container.html('<p class="text-danger">No slots available for this doctor on this date</p>');
+                container.html('<p class="text-danger">No slots available for this doctor</p>');
                 $('#bookBtn').prop('disabled', true);
             }
         },
@@ -344,7 +356,8 @@ function loadTodayAppointments() {
         method: 'GET',
         success: function(response) {
             var container = $('#today-appointments-list');
-            if (response.success && response.data.length > 0) {
+            
+            if (response.success && response.data && response.data.length > 0) {
                 var html = '<div class="table-responsive"><table class="table table-hover">';
                 html += `
                     <thead>
@@ -389,6 +402,9 @@ function loadTodayAppointments() {
             } else {
                 container.html('<p class="text-muted">No appointments today</p>');
             }
+        },
+        error: function() {
+            $('#today-appointments-list').html('<p class="text-danger">Error loading appointments</p>');
         }
     });
 }
@@ -411,7 +427,7 @@ function updateAppointmentStatus() {
     }
     
     $.ajax({
-        url: `/staff/api/appointments/${appointmentId}/status`,
+        url: '/staff/api/appointments/' + appointmentId + '/status',
         method: 'PUT',
         contentType: 'application/json',
         data: JSON.stringify({ status: status }),
