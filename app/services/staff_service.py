@@ -33,11 +33,42 @@ def get_patient_basic_info_service(patient_id):
                 'time': apt['time'],
                 'status': apt['status'],
                 'doctor': apt['doctor_name'],
-                'specialization': apt['specialization']
+                # 'specialization': apt['specialization']
             } for apt in appointments
         ]
     }
 
+def get_patient_with_admission_info_service(patient_id):
+    patient = get_patient_with_admission_info(patient_id)
+    if not patient:
+        raise ValueError(f"Patient with ID {patient_id} not found")
+    
+    return {
+        'id': patient.get('pid'),
+        'firstName': patient.get('firstname'),
+        'lastName': patient.get('lastname'),
+        'nationalCode': patient.get('nationalcode'),
+        'gender': patient.get('gender'),
+        'dateOfBirth': patient.get('dateofbirth'),
+        'age': patient.get('age'),
+        'phoneNumber': patient.get('phonenumber'),
+        'homeNumber': patient.get('homenumber'),
+        'city': patient.get('city'),
+        'province': patient.get('province'),
+        'street': patient.get('street'),
+        'alley': patient.get('alley'),
+        'houseCode': patient.get('housecode'),
+        'bloodType': patient.get('bloodtype'),
+        'smokingHistory': patient.get('smokinghistory'),
+        'admID': patient.get('admid'),
+        'cost': patient.get('cost'),
+        'admission_date': patient.get('admission_date'),
+        'bedID': patient.get('bedid'),
+        'bed_status': patient.get('bed_status'),
+        'room_name': patient.get('room_name'),
+        'department_name': patient.get('department_name'),
+        'bed_cost': patient.get('bed_cost')
+    }
 def get_doctors_service():
     return get_doctors_list()
 

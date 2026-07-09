@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+
+{% block title %}My Patients{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body py-4">
+                <h2 class="mb-0"><i class="bi bi-people"></i> My Patients</h2>
+                <p class="mb-0 mt-2">View all patients assigned to you</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div id="warningContainer" class="mb-3"></div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> Patients</h5>
+            </div>
+            <div class="card-body">
+                <div id="patientsContainer">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p>Loading patients...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Warning Modal -->
+<div class="modal fade" id="warningModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Patient Warning</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="warningModalBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-danger" role="status"></div>
+                    <p>Loading...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="#" class="btn btn-danger" id="warningViewPatientBtn">
+                    <i class="bi bi-eye"></i> View Patient
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    loadPatients();
+    loadActiveWarnings();
+    
+    setInterval(function() {
+        loadActiveWarnings();
+    }, 10000);
+});
+
+function loadPatients() {
+    $.ajax({
+        url: '/doctor/api/patients',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#patientsContainer');
+            container.empty();
+            
+            if (response.success && response.data && response.data.length > 0) {
+                var html = '<div class="row">';
+                $.each(response.data, function(i, patient) {
+                    var hasWarning = false;
+                    var statusColor = '';
+                    
+                    html += `
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="card h-100 shadow-sm patient-card" data-patient-id="${patient.pid}" data-warning="${hasWarning}">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <i class="bi bi-person-circle text-primary"></i> 
+                                        ${patient.firstname} ${patient.lastname}
+                                    </h5>
+                                    <p class="card-text mb-1">
+                                        <strong>National Code:</strong> ${patient.nationalcode}
+                                    </p>
+                                    <p class="card-text mb-1">
+                                        <strong>Age:</strong> ${patient.age || 'N/A'} years
+                                    </p>
+                                    <p class="card-text mb-1">
+                                        <strong>Phone:</strong> ${patient.phonenumber || 'N/A'}
+                                    </p>
+                                    <p class="card-text mb-1">
+                                        <strong>Blood Type:</strong> ${patient.bloodtype || 'N/A'}
+                                    </p>
+                                    <p class="card-text mb-1">
+                                        <strong>Room:</strong> ${patient.room_name || 'N/A'}
+                                    </p>
+                                    
+                                    <div id="warning-indicator-${patient.pid}" class="mt-2"></div>
+                                </div>
+                                <div class="card-footer bg-transparent">
+                                    <a href="/doctor/patient/${patient.pid}" class="btn btn-primary btn-sm w-100">
+                                        <i class="bi bi-eye"></i> View Details
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.html(html);
+                
+                // Check for warnings on each patient
+                $.each(response.data, function(i, patient) {
+                    checkPatientWarnings(patient.pid);
+                });
+                
+            } else {
+                container.html(`
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox display-4 text-muted"></i>
+                        <p class="mt-2">No patients assigned to you</p>
+                    </div>
+                `);
+            }
+        },
+        error: function() {
+            $('#patientsContainer').html('<div class="alert alert-danger">Error loading patients</div>');
+        }
+    });
+}
+
+function checkPatientWarnings(patientId) {
+    $.ajax({
+        url: '/doctor/api/patient/' + patientId + '/warnings',
+        method: 'GET',
+        success: function(response) {
+            var indicator = $('#warning-indicator-' + patientId);
+            var card = $('.patient-card[data-patient-id="' + patientId + '"]');
+            
+            if (response.success && response.data && response.data.length > 0) {
+                var uncheckedCount = response.data.filter(w => w.checkedstatus === 'Unchecked').length;
+                var totalCount = response.data.length;
+                
+                var warningText = totalCount + ' warnings';
+                var badgeClass = uncheckedCount > 0 ? 'bg-danger' : 'bg-warning';
+                
+                indicator.html(
+                    '<span class="badge ' + badgeClass + '">' +
+                    '<i class="bi bi-exclamation-triangle"></i> ' + warningText +
+                    (uncheckedCount > 0 ? ' (' + uncheckedCount + ' new)' : '') +
+                    '</span>'
+                );
+                
+                if (uncheckedCount > 0) {
+                    card.addClass('border-danger warning-flash');
+                    card.attr('data-warning', 'true');
+                    
+                    card.off('click').on('click', function(e) {
+                        if (!$(e.target).closest('a').length) {
+                            card.removeClass('warning-flash');
+                            card.attr('data-warning', 'false');
+                            showWarningModal(patientId);
+                        }
+                    });
+                } else {
+                    card.removeClass('border-danger warning-flash');
+                    card.attr('data-warning', 'false');
+                }
+            } else {
+                indicator.html('<span class="badge bg-success"><i class="bi bi-check-circle"></i> No warnings</span>');
+                card.removeClass('border-danger warning-flash');
+                card.attr('data-warning', 'false');
+            }
+        }
+    });
+}
+
+function loadActiveWarnings() {
+    $.ajax({
+        url: '/doctor/api/warnings/active',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#warningContainer');
+            
+            if (response.success && response.data && response.data.length > 0) {
+                var html = '';
+                var shownWarnings = [];
+                
+                $.each(response.data, function(i, warning) {
+                    // Only show unchecked warnings in the popup
+                    if (warning.checkedstatus === 'Unchecked' && shownWarnings.indexOf(warning.patient_id) === -1) {
+                        shownWarnings.push(warning.patient_id);
+                        html += `
+                            <div class="alert alert-danger alert-dismissible fade show warning-alert" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                                <strong>Warning!</strong> Patient 
+                                <a href="/doctor/patient/${warning.patient_id}" class="alert-link text-white">
+                                    ${warning.firstname} ${warning.lastname}
+                                </a>
+                                has abnormal ${warning.parametername} (${warning.parametervalue})
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        `;
+                    }
+                });
+                
+                container.html(html);
+                
+                setTimeout(function() {
+                    $('.warning-alert').alert('close');
+                }, 10000);
+                
+            } else {
+                container.empty();
+            }
+        }
+    });
+}
+
+function showWarningModal(patientId) {
+    $.ajax({
+        url: '/doctor/api/patient/' + patientId + '/warnings',
+        method: 'GET',
+        success: function(response) {
+            var body = $('#warningModalBody');
+            
+            if (response.success && response.data && response.data.length > 0) {
+                var html = '';
+                var warningIds = [];
+                
+                $.each(response.data, function(i, warning) {
+                    var statusColor = warning.status === 'Low' ? 'warning' : 'danger';
+                    warningIds.push(warning.logid);
+                    
+                    var checkedBadge = warning.checkedstatus === 'Checked' ? 
+                        '<span class="badge bg-success ms-2">Checked</span>' : 
+                        '<span class="badge bg-warning ms-2">Unchecked</span>';
+                    
+                    html += `
+                        <div class="alert alert-${statusColor} mb-2" data-warning-id="${warning.logid}">
+                            <strong>${warning.parametername}</strong><br>
+                            Value: ${warning.parametervalue} (Normal range: ${warning.min} - ${warning.max})<br>
+                            <small class="text-muted">${warning.createdat}</small>
+                            ${checkedBadge}
+                        </div>
+                    `;
+                });
+                body.html(html);
+                
+                // Mark all warnings as checked when doctor views them
+                $.ajax({
+                    url: '/doctor/api/patient/' + patientId + '/warnings/check-all',
+                    method: 'POST',
+                    success: function(checkResponse) {
+                        if (checkResponse.success) {
+                            console.log('Warnings marked as checked:', checkResponse.count);
+                            // Refresh the patient cards to update warning indicators
+                            loadPatients();
+                        }
+                    }
+                });
+                
+                $('#warningViewPatientBtn').attr('href', '/doctor/patient/' + patientId);
+                $('#warningModal').modal('show');
+            }
+        }
+    });
+}
+
+
+</script>
+{% endblock %}

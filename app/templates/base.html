@@ -40,6 +40,59 @@
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
             transition: box-shadow 0.3s ease;
         }
+
+        .warning-flash {
+            animation: flashRed 1s ease-in-out;
+            animation-iteration-count: 5;
+            border-width: 3px !important;
+        }
+
+        @keyframes flashRed {
+            0% {
+                border-color: #dc3545;
+                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
+            }
+
+            50% {
+                border-color: #ff6b6b;
+                box-shadow: 0 0 20px 10px rgba(220, 53, 69, 0.2);
+            }
+
+            100% {
+                border-color: #dc3545;
+                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
+            }
+        }
+
+        .patient-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .patient-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        }
+
+        .patient-card[data-warning="true"] {
+            border-color: #dc3545;
+        }
+
+        .warning-alert {
+            animation: slideDown 0.5s ease;
+        }
+
+        @keyframes slideDown {
+            0% {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -122,6 +175,12 @@
                         <a class="nav-link {% if request.endpoint == 'staff.surgeries' %}active{% endif %}"
                             href="{{ url_for('staff.surgeries') }}">
                             <i class="bi bi-scissors"></i> Surgeries
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'doctor.patients' %}active{% endif %}"
+                            href="{{ url_for('doctor.patients') }}">
+                            <i class="bi bi-people"></i> My Patients
                         </a>
                     </li>
 

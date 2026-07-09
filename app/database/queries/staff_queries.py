@@ -160,7 +160,7 @@ def get_appointments_by_patient(patient_id):
             a.date,
             a.time,
             a.status,
-            e.firstName || ' ' || e.lastName AS doctor_name,
+            e.firstName || ' ' || e.lastName AS doctor_name
         FROM appointment AS a
         JOIN doctor AS d ON a.doctorID = d.employeeID
         JOIN employee AS e ON d.employeeID = e.employeeID
@@ -168,13 +168,66 @@ def get_appointments_by_patient(patient_id):
         WHERE mr.pID = %s
         ORDER BY a.date DESC, a.time DESC
     """
-    return DatabaseConnection.execute_query(
+    results = DatabaseConnection.execute_query(
         query, 
         (patient_id,), 
         fetch_all=True, 
         fetch_dict=True
     )
+    
+    for row in results:
+        if 'time' in row and row['time']:
+            row['time'] = str(row['time'])
+        if 'date' in row and row['date']:
+            row['date'] = str(row['date'])
+    
+    return results
 
+def get_patient_with_admission_info(patient_id):
+    query = """
+        SELECT 
+            p.pID,
+            p.firstName,
+            p.lastName,
+            p.nationalCode,
+            p.gender,
+            p.dateOfBirth,
+            EXTRACT(YEAR FROM age(CURRENT_DATE, p.dateOfBirth)) as age,
+            p.phoneNumber,
+            p.homeNumber,
+            p.city,
+            p.province,
+            p.street,
+            p.alley,
+            p.houseCode,
+            p.createdAt,
+            m.mID,
+            m.bloodType,
+            m.smokingHistory,
+            a.admID,
+            a.cost,
+            bi.bedID,
+            bi.status as bed_status,
+            r.name as room_name,
+            dep.name as department_name,
+            b.cost as bed_cost
+        FROM patient p
+        LEFT JOIN medicalRecord m ON p.pID = m.pID
+        LEFT JOIN admission a ON a.mID = m.mID
+        LEFT JOIN bedInfo bi ON bi.asgAdmID = a.admID
+        LEFT JOIN bed b ON bi.bedID = b.bedID
+        LEFT JOIN room r ON bi.roomID = r.roomID
+        LEFT JOIN department dep ON r.departID = dep.departID
+        WHERE p.pID = %s
+        ORDER BY bi.startTimestamp DESC
+        LIMIT 1
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        (patient_id,),
+        fetch_one=True,
+        fetch_dict=True
+    )
 
 def get_surgeons_list():
     query = """
@@ -565,3 +618,33 @@ def update_appointment_status(appointment_id, status):
         commit=True
     )
     return result[0] if result else None
+
+def get_appointments_by_patient(patient_id):
+    query = """
+        SELECT 
+            a.appoID,
+            a.date,
+            a.time,
+            a.status,
+            e.firstName || ' ' || e.lastName AS doctor_name
+        FROM appointment AS a
+        JOIN doctor AS d ON a.doctorID = d.employeeID
+        JOIN employee AS e ON d.employeeID = e.employeeID
+        JOIN medicalRecord AS mr ON a.mID = mr.mID
+        WHERE mr.pID = %s
+        ORDER BY a.date DESC, a.time DESC
+    """
+    results = DatabaseConnection.execute_query(
+        query, 
+        (patient_id,), 
+        fetch_all=True, 
+        fetch_dict=True
+    )
+    
+    for row in results:
+        if 'time' in row and row['time']:
+            row['time'] = str(row['time'])
+        if 'date' in row and row['date']:
+            row['date'] = str(row['date'])
+    
+    return results

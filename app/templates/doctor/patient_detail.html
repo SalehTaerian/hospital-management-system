@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Details{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body py-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0"><i class="bi bi-person-circle"></i> Patient Details</h2>
+                    </div>
+                    <a href="{{ url_for('doctor.patients') }}" class="btn btn-light">
+                        <i class="bi bi-arrow-left"></i> Back
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden input for patient ID -->
+<input type="hidden" id="patientId" value="{{ patient_id }}">
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow" id="patientInfo">
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p>Loading patient information...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-clipboard-data"></i> Patient Logs</h5>
+                <span class="badge bg-secondary" id="logCount">0 logs</span>
+            </div>
+            <div class="card-body">
+                <div id="logsContainer">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p>Loading logs...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    var patientId = parseInt(document.getElementById('patientId').value) || 0;
+    loadPatientInfo(patientId);
+    loadPatientLogs(patientId);
+});
+
+function loadPatientInfo(patientId) {
+    $.ajax({
+        url: '/staff/api/patients-admission/' + patientId,
+        method: 'GET',
+        success: function(response) {
+            var container = $('#patientInfo');
+            if (response.success) {
+                var p = response.data;
+                var html = `
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Personal Information</h5>
+                                <table class="table table-sm">
+                                    <tr><td><strong>Name:</strong></td><td>${p.firstName} ${p.lastName}</td></tr>
+                                    <tr><td><strong>National Code:</strong></td><td>${p.nationalCode}</td></tr>
+                                    <tr><td><strong>Gender:</strong></td><td>${p.gender || 'N/A'}</td></tr>
+                                    <tr><td><strong>Age:</strong></td><td>${p.age || 'N/A'} years</td></tr>
+                                    <tr><td><strong>Phone:</strong></td><td>${p.phoneNumber || 'N/A'}</td></tr>
+                                    <tr><td><strong>Blood Type:</strong></td><td>${p.bloodType || 'N/A'}</td></tr>
+                                    <tr><td><strong>Smoking History:</strong></td><td>${p.smokingHistory || 'N/A'}</td></tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Admission Information</h5>
+                                <table class="table table-sm">
+                                    <tr><td><strong>Admission ID:</strong></td><td>${p.admID || 'N/A'}</td></tr>
+                                    <tr><td><strong>Room:</strong></td><td>${p.room_name || 'N/A'}</td></tr>
+                                    <tr><td><strong>Bed:</strong></td><td>${p.bedID ? '#' + p.bedID : 'N/A'}</td></tr>
+                                    <tr><td><strong>Department:</strong></td><td>${p.department_name || 'N/A'}</td></tr>
+                                    <tr><td><strong>Status:</strong></td><td>
+                                        <span class="badge bg-${p.bed_status === 'Occupied' ? 'success' : 'secondary'}">
+                                            ${p.bed_status || 'N/A'}
+                                        </span>
+                                    </td></tr>
+                                    <tr><td><strong>Cost:</strong></td><td>$${parseFloat(p.cost || 0).toFixed(2)}</td></tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.html(html);
+            }
+        }
+    });
+}
+
+function loadPatientLogs(patientId) {
+    $.ajax({
+        url: '/doctor/api/patient/' + patientId + '/logs',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#logsContainer');
+            var count = response.data ? response.data.length : 0;
+            $('#logCount').text(count + ' logs');
+            
+            if (response.success && response.data && response.data.length > 0) {
+                var html = `
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Parameter</th>
+                                    <th>Value</th>
+                                    <th>Status</th>
+                                    <th>Equipment</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                $.each(response.data, function(i, log) {
+                    var statusColor = log.status_color || 'secondary';
+                    html += `
+                        <tr>
+                            <td>${i + 1}</td>
+                            <td><strong>${log.parametername}</strong></td>
+                            <td>${log.parametervalue}</td>
+                            <td><span class="badge bg-${statusColor}">${log.status}</span></td>
+                            <td>${log.equipment_name || 'N/A'}</td>
+                            <td>${log.createdat}</td>
+                        </tr>
+                    `;
+                });
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                container.html(html);
+            } else {
+                container.html(`
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox display-4 text-muted"></i>
+                        <p class="mt-2">No logs found for this patient</p>
+                    </div>
+                `);
+            }
+        },
+        error: function() {
+            $('#logsContainer').html('<div class="alert alert-danger">Error loading logs</div>');
+        }
+    });
+}
+</script>
+{% endblock %}

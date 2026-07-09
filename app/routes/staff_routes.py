@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
 from app.services.auth_service import is_logged_in
+from app.services.staff_service import *
 
 staff_bp = Blueprint('staff', __name__, url_prefix='/staff')
 
@@ -53,7 +54,6 @@ def api_search_patients():
     if not staff_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
-    from app.services.staff_service import search_patients_service
     search_term = request.args.get('q', '')
     results = search_patients_service(search_term)
     return jsonify({'success': True, 'data': results})
@@ -63,7 +63,6 @@ def api_get_patient(patient_id):
     if not staff_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
-    from app.services.staff_service import get_patient_basic_info_service
     try:
         patient = get_patient_basic_info_service(patient_id)
         return jsonify({'success': True, 'data': patient})
@@ -75,7 +74,6 @@ def api_get_doctors():
     if not staff_login_required():
         return jsonify({'success ': False, 'error': 'Unauthorized'}), 401
     
-    from app.services.staff_service import get_doctors_service
     doctors = get_doctors_service()
     return jsonify({'success': True, 'data': doctors})
 
@@ -84,7 +82,6 @@ def api_get_available_doctors():
     if not staff_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
-    from app.services.staff_service import get_doctors_with_availability_service
     date = request.args.get('date')
     if not date:
         return jsonify({'success': False, 'error': 'Date is required'}), 400
@@ -98,7 +95,6 @@ def api_get_doctor_slots(doctor_id):
     #     print("Unauthorized access attempt to get doctor slots")
     #     return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
-    from app.services.staff_service import get_available_slots_service
     date = request.args.get('date')
     if not date:
         return jsonify({'success': False, 'error': 'Date is required'}), 400
@@ -111,7 +107,6 @@ def api_create_appointment():
     # if not staff_login_required():
     #     return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
-    from app.services.staff_service import create_appointment_service
     try:
         data = request.get_json()
         
@@ -129,7 +124,6 @@ def api_update_appointment_status(appointment_id):
     if not staff_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
-    from app.services.staff_service import update_appointment_status_service
     try:
         data = request.get_json()
         status = data.get('status')
@@ -154,7 +148,6 @@ def api_get_today_appointments():
     if not staff_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
-    from app.services.staff_service import get_today_appointments_service
     appointments = get_today_appointments_service()
     return jsonify({'success': True, 'data': appointments})
 
@@ -163,7 +156,6 @@ def api_get_surgeons():
     if not staff_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
-    from app.services.staff_service import get_surgeons_service
     surgeons = get_surgeons_service()
     return jsonify({'success': True, 'data': surgeons})
 
@@ -172,7 +164,6 @@ def api_get_surgery_codes():
     if not staff_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
-    from app.services.staff_service import get_surgery_codes_service
     codes = get_surgery_codes_service()
     return jsonify({'success': True, 'data': codes})
 
@@ -181,7 +172,6 @@ def api_get_rooms():
     if not staff_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
-    from app.services.staff_service import get_rooms_service
     rooms = get_rooms_service()
     return jsonify({'success': True, 'data': rooms})
 
@@ -190,7 +180,6 @@ def api_create_surgery():
     if not staff_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
-    from app.services.staff_service import create_surgery_service
     try:
         data = request.get_json()
         surgery_id = create_surgery_service(data)
@@ -207,7 +196,6 @@ def api_get_today_surgeries():
     if not staff_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
-    from app.services.staff_service import get_today_surgeries_service
     surgeries = get_today_surgeries_service()
     return jsonify({'success': True, 'data': surgeries})
 
@@ -216,6 +204,13 @@ def api_get_dashboard_stats():
     if not staff_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
-    from app.services.staff_service import get_dashboard_stats_service
     stats = get_dashboard_stats_service()
     return jsonify({'success': True, 'data': stats})
+
+@staff_bp.route('/api/patients-admission/<int:patient_id>', methods=['GET'])
+def api_get_patient_with_admission_info_service(patient_id):
+    try:
+        patient = get_patient_with_admission_info_service(patient_id)
+        return jsonify({'success': True, 'data': patient})
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 404
