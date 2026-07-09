@@ -11,6 +11,7 @@ def get_all_staff():
             e.hireDate,
             e.accessLevel,
             e.salary,
+            e.departID,
             d.name as department_name,
             CASE 
                 WHEN doc.employeeID IS NOT NULL THEN 'Doctor'
@@ -18,7 +19,11 @@ def get_all_staff():
                 WHEN nur.employeeID IS NOT NULL THEN 'Nurse'
                 WHEN off.employeeID IS NOT NULL THEN 'Office Staff'
                 ELSE 'Unknown'
-            END as role
+            END as role,
+            doc.medicalNumber as doctor_medicalNumber,
+            doc.visitCost,
+            surg.medicalNumber as surgeon_medicalNumber,
+            nur.medicalNumber as nurse_medicalNumber
         FROM employee e
         LEFT JOIN department d ON e.departID = d.departID
         LEFT JOIN doctor doc ON e.employeeID = doc.employeeID
@@ -127,36 +132,38 @@ def delete_employee(employee_id):
     return result[0] if result else None
 
 def update_employee_role(employee_id, new_role):
-    query = """
-        DELETE FROM doctor WHERE employeeID = %s;
-        DELETE FROM surgeon WHERE employeeID = %s;
-        DELETE FROM nurse WHERE employeeID = %s;
-        DELETE FROM officeStaff WHERE employeeID = %s;
-    """
-    DatabaseConnection.execute_query(
-        query,
-        (employee_id, employee_id, employee_id, employee_id),
-        commit=True
-    )
+    delete_queries = [
+        "DELETE FROM doctor WHERE employeeID = %s",
+        "DELETE FROM surgeon WHERE employeeID = %s",
+        "DELETE FROM nurse WHERE employeeID = %s",
+        "DELETE FROM officeStaff WHERE employeeID = %s"
+    ]
+    
+    for query in delete_queries:
+        DatabaseConnection.execute_query(
+            query,
+            (employee_id,),
+            commit=True
+        )
     
     if new_role == 'doctor':
         query = """
             INSERT INTO doctor (employeeID, medicalNumber, visitCost)
             VALUES (%s, %s, %s)
         """
-        params = (employee_id, '', '', 0)
+        params = (employee_id, '', 0)
     elif new_role == 'surgeon':
         query = """
-            INSERT INTO surgeon (employeeID, medicalNumber)
+            INSERT INTO surgeon (employeeID, medicalNumber, surgicalField)
             VALUES (%s, %s, %s)
         """
         params = (employee_id, '', '')
     elif new_role == 'nurse':
         query = """
-            INSERT INTO nurse (employeeID, medicalNumber, grade)
-            VALUES (%s, %s, %s)
+            INSERT INTO nurse (employeeID, medicalNumber)
+            VALUES (%s, %s)
         """
-        params = (employee_id, '', '')
+        params = (employee_id, '')
     elif new_role == 'officeStaff':
         query = """
             INSERT INTO officeStaff (employeeID, role)
@@ -223,6 +230,196 @@ def get_staff_by_role(role):
     """
     return DatabaseConnection.execute_query(
         query,
+        fetch_all=True,
+        fetch_dict=True
+    )
+
+def get_departments():
+    query = """
+        SELECT 
+            departID,
+            name
+        FROM department
+        ORDER BY name
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        fetch_all=True,
+        fetch_dict=True
+    )
+
+def update_doctor_details(employee_id, medical_number, visit_cost):
+    query = """
+        UPDATE doctor
+        SET medicalNumber = %s, visitCost = %s
+        WHERE employeeID = %s
+    """
+    DatabaseConnection.execute_query(
+        query,
+        (medical_number, visit_cost, employee_id),
+        commit=True
+    )
+
+def update_doctor_medical_number(employee_id, medical_number):
+    query = """
+        UPDATE doctor
+        SET medicalNumber = %s
+        WHERE employeeID = %s
+    """
+    DatabaseConnection.execute_query(
+        query,
+        (medical_number, employee_id),
+        commit=True
+    )
+
+def update_doctor_visit_cost(employee_id, visit_cost):
+    query = """
+        UPDATE doctor
+        SET visitCost = %s
+        WHERE employeeID = %s
+    """
+    DatabaseConnection.execute_query(
+        query,
+        (visit_cost, employee_id),
+        commit=True
+    )
+
+def update_surgeon_details(employee_id, medical_number, surgical_field):
+    query = """
+        UPDATE surgeon
+        SET medicalNumber = %s, surgicalField = %s
+        WHERE employeeID = %s
+    """
+    DatabaseConnection.execute_query(
+        query,
+        (medical_number, surgical_field, employee_id),
+        commit=True
+    )
+
+def update_surgeon_medical_number(employee_id, medical_number):
+    query = """
+        UPDATE surgeon
+        SET medicalNumber = %s
+        WHERE employeeID = %s
+    """
+    DatabaseConnection.execute_query(
+        query,
+        (medical_number, employee_id),
+        commit=True
+    )
+
+def update_nurse_details(employee_id, medical_number):
+    query = """
+        UPDATE nurse
+        SET medicalNumber = %s
+        WHERE employeeID = %s
+    """
+    DatabaseConnection.execute_query(
+        query,
+        (medical_number, employee_id),
+        commit=True
+    )
+
+def update_nurse_medical_number(employee_id, medical_number):
+    query = """
+        UPDATE nurse
+        SET medicalNumber = %s
+        WHERE employeeID = %s
+    """
+    DatabaseConnection.execute_query(
+        query,
+        (medical_number, employee_id),
+        commit=True
+    )
+
+def assign_doctor_specialization(doctor_id, spec_id):
+    query = """
+        INSERT INTO doctorSpecialization (docID, specID)
+        VALUES (%s, %s)
+        ON CONFLICT (docID, specID) DO NOTHING
+        RETURNING docID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (doctor_id, spec_id),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def remove_doctor_specialization(doctor_id, spec_id):
+    query = """
+        DELETE FROM doctorSpecialization
+        WHERE docID = %s AND specID = %s
+        RETURNING docID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (doctor_id, spec_id),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def assign_surgeon_specialization(surgeon_id, spec_id):
+    query = """
+        INSERT INTO surgeonSpecialization (surgeonID, specID)
+        VALUES (%s, %s)
+        ON CONFLICT (surgeonID, specID) DO NOTHING
+        RETURNING surgeonID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (surgeon_id, spec_id),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def remove_surgeon_specialization(surgeon_id, spec_id):
+    query = """
+        DELETE FROM surgeonSpecialization
+        WHERE surgeonID = %s AND specID = %s
+        RETURNING surgeonID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (surgeon_id, spec_id),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def get_doctor_specializations(doctor_id):
+    query = """
+        SELECT 
+            ds.docID,
+            ds.specID,
+            sf.name
+        FROM doctorSpecialization ds
+        JOIN specializationFields sf ON ds.specID = sf.specID
+        WHERE ds.docID = %s
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        (doctor_id,),
+        fetch_all=True,
+        fetch_dict=True
+    )
+
+def get_surgeon_specializations(surgeon_id):
+    query = """
+        SELECT 
+            ss.surgeonID,
+            ss.specID,
+            sf.name
+        FROM surgeonSpecialization ss
+        JOIN specializationFields sf ON ss.specID = sf.specID
+        WHERE ss.surgeonID = %s
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        (surgeon_id,),
         fetch_all=True,
         fetch_dict=True
     )

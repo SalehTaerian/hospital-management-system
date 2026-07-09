@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Edit Staff{% endblock %}
+{% block title %}Edit Staff Member{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -12,7 +12,9 @@
             <div class="card-body">
                 <form id="editStaffForm">
                     <input type="hidden" id="employeeId" value="{{ staff.employeeid }}">
-                    
+
+                    <!-- Personal Information -->
+                    <h6 class="border-bottom pb-2 mb-3">Personal Information</h6>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">First Name</label>
@@ -23,7 +25,7 @@
                             <input type="text" class="form-control" id="lastName" value="{{ staff.lastname }}" required>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">National Code</label>
@@ -34,7 +36,9 @@
                             <p class="form-control-static"><span class="badge bg-info">{{ staff.role }}</span></p>
                         </div>
                     </div>
-                    
+
+                    <!-- Employment Information -->
+                    <h6 class="border-bottom pb-2 mb-3 mt-4">Employment Information</h6>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Contract Type</label>
@@ -49,7 +53,7 @@
                             <input type="date" class="form-control" id="hireDate" value="{{ staff.hiredate.strftime('%Y-%m-%d') if staff.hiredate else '' }}">
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Department</label>
@@ -63,6 +67,15 @@
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
+                            <label class="form-label">Salary</label>
+                            <input type="number" class="form-control" id="salary" step="0.01" value="{{ staff.salary }}">
+                        </div>
+                    </div>
+
+                    <!-- Role & Specialization -->
+                    <h6 class="border-bottom pb-2 mb-3 mt-4">Role & Specialization</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
                             <label class="form-label">Change Role</label>
                             <select class="form-control" id="accessLevel">
                                 <option value="">No Change</option>
@@ -73,32 +86,39 @@
                             </select>
                             <small class="text-muted">Select a role to change it. Leave empty to keep current.</small>
                         </div>
+                        <div class="col-md-6 mb-3" id="medicalNumberContainer" style="display:none;">
+                            <label class="form-label">Medical Number</label>
+                            <input type="text" class="form-control" id="medicalNumber" value="{{ staff.medicalnumber or '' }}" placeholder="Enter medical number...">
+                        </div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Salary</label>
-                        <input type="number" class="form-control" id="salary" step="0.01" value="{{ staff.salary }}">
+
+                    <!-- Specializations (Doctor/Surgeon only) -->
+                    <div class="mb-3" id="specializationContainer" style="display:none;">
+                        <label class="form-label">Specializations</label>
+                        <select class="form-control" id="specializations" multiple style="height:120px;">
+                            <!-- Options loaded via JavaScript -->
+                        </select>
+                        <small class="text-muted">Hold Ctrl to select multiple</small>
                     </div>
-                    
+
+                    <!-- Visit Cost (Doctor only) -->
+                    <div class="mb-3" id="visitCostContainer" style="display:none;">
+                        <label class="form-label">Visit Cost</label>
+                        <input type="number" class="form-control" id="visitCost" step="0.01" value="{{ staff.visitcost or 0 }}" placeholder="0.00">
+                    </div>
+
+                    <!-- Doctor-specific fields (read-only display) -->
                     {% if staff.role == 'Doctor' %}
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Medical Number</label>
-                            <input type="text" class="form-control" id="medicalNumber" value="{{ staff.doctor_medicalnumber or '' }}">
+                            <label class="form-label">Current Specialization</label>
+                            <p class="form-control-static">{{ staff.role_detail or 'N/A' }}</p>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Visit Cost</label>
-                            <input type="number" class="form-control" id="visitCost" step="0.01" value="{{ staff.visitcost or 0 }}">
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Specialization</label>
-                        <input type="text" class="form-control" id="specialization" value="{{ staff.role_detail or '' }}">
                     </div>
                     {% endif %}
-                    
+
                     <div id="formMessage" class="alert d-none"></div>
-                    
+
                     <button type="submit" class="btn btn-warning">Update Staff</button>
                     <a href="{{ url_for('staff_management.index') }}" class="btn btn-secondary">Cancel</a>
                 </form>
@@ -111,15 +131,92 @@
 {% block scripts %}
 <script>
 $(document).ready(function() {
+    // Load specializations when page loads
+    loadSpecializations();
+
+    // Show/hide role-specific fields based on selection
+    $('#accessLevel').on('change', function() {
+        var level = $(this).val();
+        
+        // Hide all role-specific containers first
+        $('#specializationContainer').hide();
+        $('#visitCostContainer').hide();
+        $('#medicalNumberContainer').hide();
+
+        if (level === 'doctor') {
+            $('#specializationContainer').show();
+            $('#visitCostContainer').show();
+            $('#medicalNumberContainer').show();
+            loadSpecializations();
+        } else if (level === 'surgeon') {
+            $('#specializationContainer').show();
+            $('#medicalNumberContainer').show();
+            loadSpecializations();
+        } else if (level === 'nurse') {
+            $('#medicalNumberContainer').show();
+        } else if (level === '') {
+            // No change - show based on current role
+            var currentRole = '{{ staff.role }}';
+            if (currentRole === 'Doctor') {
+                $('#specializationContainer').show();
+                $('#visitCostContainer').show();
+                $('#medicalNumberContainer').show();
+            } else if (currentRole === 'Surgeon') {
+                $('#specializationContainer').show();
+                $('#medicalNumberContainer').show();
+            } else if (currentRole === 'Nurse') {
+                $('#medicalNumberContainer').show();
+            }
+        }
+    });
+
+    // If current role is doctor or surgeon, show specializations
+    var currentRole = '{{ staff.role }}';
+    if (currentRole === 'Doctor') {
+        $('#specializationContainer').show();
+        $('#visitCostContainer').show();
+        $('#medicalNumberContainer').show();
+    } else if (currentRole === 'Surgeon') {
+        $('#specializationContainer').show();
+        $('#medicalNumberContainer').show();
+    } else if (currentRole === 'Nurse') {
+        $('#medicalNumberContainer').show();
+    }
+
+    // Form submission
     $('#editStaffForm').on('submit', function(e) {
         e.preventDefault();
         updateStaff();
     });
 });
 
+function loadSpecializations() {
+    $.ajax({
+        url: '/icd/api/specialization',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var select = $('#specializations');
+                select.empty();
+                if (response.data && response.data.length > 0) {
+                    $.each(response.data, function(i, spec) {
+                        select.append('<option value="' + spec.id + '">' + spec.name + '</option>');
+                    });
+                } else {
+                    select.append('<option value="">No specializations available</option>');
+                }
+            }
+        },
+        error: function(xhr) {
+            console.error('Error loading specializations:', xhr);
+        }
+    });
+}
+
 function updateStaff() {
     var id = $('#employeeId').val();
-    
+    var role = $('#accessLevel').val();
+
     var data = {
         firstName: $('#firstName').val(),
         lastName: $('#lastName').val(),
@@ -127,30 +224,53 @@ function updateStaff() {
         contractType: $('#contractType').val(),
         hireDate: $('#hireDate').val(),
         departID: $('#department').val(),
-        salary: $('#salary').val()
+        salary: $('#salary').val(),
+        medicalNumber: $('#medicalNumber').val() || '',
+        specializations: $('#specializations').val() || []
     };
-    
+
+    // Add role-specific fields
+    if (role === 'doctor' || role === '') {
+        // If no role change, check current role
+        var currentRole = '{{ staff.role }}';
+        if (role === 'doctor' || (role === '' && currentRole === 'Doctor')) {
+            data.visitCost = $('#visitCost').val() || 0;
+        }
+    }
+
+    // Validate
+    if (!data.firstName || !data.lastName || !data.nationalCode || !data.contractType || !data.departID) {
+        showMessage('Please fill in all required fields', 'danger');
+        return;
+    }
+
+    // Determine which role we're validating against
+    var targetRole = role || '{{ staff.role }}';
+    if ((targetRole === 'doctor' || targetRole === 'surgeon' || targetRole === 'nurse') && !data.medicalNumber) {
+        showMessage('Medical number is required for ' + targetRole, 'danger');
+        return;
+    }
+
     // If role change is selected
-    var newRole = $('#accessLevel').val();
-    if (newRole) {
+    if (role) {
         // First update the role
         $.ajax({
-            url: `/staff-management/api/staff/${id}/role`,
+            url: '/staff-management/api/staff/' + id + '/role',
             method: 'PUT',
             contentType: 'application/json',
-            data: JSON.stringify({ role: newRole }),
+            data: JSON.stringify({ role: role }),
             success: function(response) {
-                if (!response.success) {
+                if (response.success) {
+                    // Then update the rest
+                    updateStaffDetails(id, data);
+                } else {
                     showMessage('❌ Error updating role: ' + response.error, 'danger');
-                    return;
                 }
-                // Then update the rest
-                updateStaffDetails(id, data);
             },
             error: function(xhr) {
                 try {
                     var response = JSON.parse(xhr.responseText);
-                    showMessage('❌ Error: ' + response.error, 'danger');
+                    showMessage('❌ Error: ' + (response.error || xhr.statusText), 'danger');
                 } catch(e) {
                     showMessage('❌ Error: ' + xhr.statusText, 'danger');
                 }
@@ -163,7 +283,7 @@ function updateStaff() {
 
 function updateStaffDetails(id, data) {
     $.ajax({
-        url: `/staff-management/api/staff/${id}`,
+        url: '/staff-management/api/staff/' + id,
         method: 'PUT',
         contentType: 'application/json',
         data: JSON.stringify(data),
@@ -180,7 +300,7 @@ function updateStaffDetails(id, data) {
         error: function(xhr) {
             try {
                 var response = JSON.parse(xhr.responseText);
-                showMessage('❌ Error: ' + response.error, 'danger');
+                showMessage('❌ Error: ' + (response.error || xhr.statusText), 'danger');
             } catch(e) {
                 showMessage('❌ Error: ' + xhr.statusText, 'danger');
             }
@@ -191,7 +311,7 @@ function updateStaffDetails(id, data) {
 function showMessage(message, type) {
     var msg = $('#formMessage');
     msg.removeClass('d-none alert-success alert-danger')
-       .addClass(`alert-${type}`)
+       .addClass('alert-' + type)
        .text(message);
 }
 </script>

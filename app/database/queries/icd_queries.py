@@ -779,3 +779,343 @@ def get_all_rooms_for_dropdown():
         fetch_all=True,
         fetch_dict=True
     )
+    
+
+def get_all_specializations():
+    query = """
+        SELECT 
+            specID as id,
+            name
+        FROM specializationFields
+        ORDER BY name
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        fetch_all=True,
+        fetch_dict=True
+    )
+
+def get_specialization_by_id(specID):
+    query = """
+        SELECT 
+            specID as id,
+            name
+        FROM specializationFields
+        WHERE specID = %s
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        (specID,),
+        fetch_one=True,
+        fetch_dict=True
+    )
+
+def create_specialization(data):
+    query = """
+        INSERT INTO specializationFields (name)
+        VALUES (%s)
+        RETURNING specID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (data.get('name'),),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def update_specialization(specID, data):
+    query = """
+        UPDATE specializationFields
+        SET name = %s
+        WHERE specID = %s
+        RETURNING specID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (data.get('name'), specID),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def delete_specialization(specID):
+    query = "DELETE FROM specializationFields WHERE specID = %s RETURNING specID"
+    result = DatabaseConnection.execute_query(
+        query,
+        (specID,),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def get_doctor_specializations(doctorID):
+    query = """
+        SELECT 
+            ds.docID,
+            ds.specID,
+            sf.name
+        FROM doctorSpecialization ds
+        JOIN specializationFields sf ON ds.specID = sf.specID
+        WHERE ds.docID = %s
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        (doctorID,),
+        fetch_all=True,
+        fetch_dict=True
+    )
+
+def get_surgeon_specializations(surgeonID):
+    query = """
+        SELECT 
+            ss.surgeonID,
+            ss.specID,
+            sf.name
+        FROM surgeonSpecialization ss
+        JOIN specializationFields sf ON ss.specID = sf.specID
+        WHERE ss.surgeonID = %s
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        (surgeonID,),
+        fetch_all=True,
+        fetch_dict=True
+    )
+
+def assign_doctor_specialization(doctorID, specID):
+    query = """
+        INSERT INTO doctorSpecialization (docID, specID)
+        VALUES (%s, %s)
+        ON CONFLICT (docID, specID) DO NOTHING
+        RETURNING docID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (doctorID, specID),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def remove_doctor_specialization(doctorID, specID):
+    query = """
+        DELETE FROM doctorSpecialization
+        WHERE docID = %s AND specID = %s
+        RETURNING docID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (doctorID, specID),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def assign_surgeon_specialization(surgeonID, specID):
+    query = """
+        INSERT INTO surgeonSpecialization (surgeonID, specID)
+        VALUES (%s, %s)
+        ON CONFLICT (surgeonID, specID) DO NOTHING
+        RETURNING surgeonID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (surgeonID, specID),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def remove_surgeon_specialization(surgeonID, specID):
+    query = """
+        DELETE FROM surgeonSpecialization
+        WHERE surgeonID = %s AND specID = %s
+        RETURNING surgeonID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (surgeonID, specID),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+
+def get_all_specializations():
+    try:
+        query = """
+            SELECT 
+                specID as id,
+                name
+            FROM specializationFields
+            ORDER BY name
+        """
+        return DatabaseConnection.execute_query(
+            query,
+            fetch_all=True,
+            fetch_dict=True
+        )
+    except Exception as e:
+        print(f"Error loading specializations: {e}")
+        return []
+
+def get_specialization_by_id(specID):
+    query = """
+        SELECT 
+            specID as id,
+            name
+        FROM specializationFields
+        WHERE specID = %s
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        (specID,),
+        fetch_one=True,
+        fetch_dict=True
+    )
+
+def create_specialization(data):
+    query = """
+        INSERT INTO specializationFields (name)
+        VALUES (%s)
+        RETURNING specID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (data.get('name'),),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def update_specialization(specID, data):
+    query = """
+        UPDATE specializationFields
+        SET name = %s
+        WHERE specID = %s
+        RETURNING specID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (data.get('name'), specID),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def delete_specialization(specID):
+    query = "DELETE FROM specializationFields WHERE specID = %s RETURNING specID"
+    result = DatabaseConnection.execute_query(
+        query,
+        (specID,),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+
+def get_all_medicine_conflicts():
+    try:
+        query = """
+            SELECT 
+                mc.medconfID,
+                mc.departID,
+                d.name as department_name,
+                mc.icdm1ID,
+                med1.medicineName as medicine1_name,
+                mc.icdm2ID,
+                med2.medicineName as medicine2_name
+            FROM medicineConflict mc
+            LEFT JOIN department d ON mc.departID = d.departID
+            LEFT JOIN icdmCode med1 ON mc.icdm1ID = med1.icdmID
+            LEFT JOIN icdmCode med2 ON mc.icdm2ID = med2.icdmID
+            ORDER BY mc.medconfID
+        """
+        return DatabaseConnection.execute_query(
+            query,
+            fetch_all=True,
+            fetch_dict=True
+        )
+    except Exception as e:
+        print(f"Error loading medicine conflicts: {e}")
+        return []
+
+def get_medicine_conflict_by_id(medconfID):
+    query = """
+        SELECT 
+            mc.medconfID,
+            mc.departID,
+            mc.icdm1ID,
+            mc.icdm2ID
+        FROM medicineConflict mc
+        WHERE mc.medconfID = %s
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        (medconfID,),
+        fetch_one=True,
+        fetch_dict=True
+    )
+
+def create_medicine_conflict(data):
+    query = """
+        INSERT INTO medicineConflict (departID, icdm1ID, icdm2ID)
+        VALUES (%s, %s, %s)
+        RETURNING medconfID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (
+            data.get('departID'),
+            data.get('icdm1ID'),
+            data.get('icdm2ID')
+        ),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def update_medicine_conflict(medconfID, data):
+    query = """
+        UPDATE medicineConflict
+        SET departID = %s, icdm1ID = %s, icdm2ID = %s
+        WHERE medconfID = %s
+        RETURNING medconfID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (
+            data.get('departID'),
+            data.get('icdm1ID'),
+            data.get('icdm2ID'),
+            medconfID
+        ),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def delete_medicine_conflict(medconfID):
+    query = "DELETE FROM medicineConflict WHERE medconfID = %s RETURNING medconfID"
+    result = DatabaseConnection.execute_query(
+        query,
+        (medconfID,),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def get_all_medicines_for_dropdown():
+    query = """
+        SELECT 
+            icdmID as id,
+            medicineName as name
+        FROM icdmCode
+        ORDER BY medicineName
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        fetch_all=True,
+        fetch_dict=True
+    )

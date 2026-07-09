@@ -190,16 +190,16 @@ def assign_employee_role(employee_id, role):
         params = (employee_id, '', 0)
     elif role == 'surgeon':
         query = """
-            INSERT INTO surgeon (employeeID, medicalNumber)
+            INSERT INTO surgeon (employeeID, medicalNumber, surgicalField)
             VALUES (%s, %s, %s)
         """
         params = (employee_id, '', '')
     elif role == 'nurse':
         query = """
-            INSERT INTO nurse (employeeID, medicalNumber, grade)
-            VALUES (%s, %s, %s)
+            INSERT INTO nurse (employeeID, medicalNumber)
+            VALUES (%s, %s)
         """
-        params = (employee_id, '', '')
+        params = (employee_id, '')
     elif role == 'officeStaff':
         query = """
             INSERT INTO officeStaff (employeeID, role)

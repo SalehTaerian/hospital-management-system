@@ -179,7 +179,7 @@ def get_patient_admissions(patient_id):
         JOIN medicalRecord mr ON a.mID = mr.mID
         JOIN doctor doc ON a.doctorID = doc.employeeID
         JOIN employee e ON doc.employeeID = e.employeeID
-        LEFT JOIN bedInfo bi ON a.admID = bi.asgAdmID AND bi.status = 'Occupied'
+        LEFT JOIN bedInfo bi ON a.admID = bi.asgAdmID
         LEFT JOIN bed b ON bi.bedID = b.bedID
         LEFT JOIN room r ON bi.roomID = r.roomID
         LEFT JOIN department dep ON r.departID = dep.departID

@@ -1,14 +1,14 @@
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
-from app.routes.auth_routes import staff_logout
 from app.services.staff_management_service import *
-from app.services.auth_service import get_departments_service, is_logged_in
+from app.services.auth_service import is_logged_in
 
 staff_mgmt_bp = Blueprint('staff_management', __name__, url_prefix='/staff-management')
 
 def chief_office_staff_required():
     if not is_logged_in():
         return False
-    if session.get('user_role') != 'officeStaff' or session.get('access_level') != 'HospitalChief':
+    if session.get('access_level') != 'HospitalChief':
+        session.clear()
         return False
     return session.get('user_role') == 'officeStaff'
 
@@ -17,8 +17,7 @@ def index():
     if not chief_office_staff_required():
         return redirect('/staff-login')
     
-    departments = get_departments_service()
-    return render_template('staff_management/index.html', departments=departments)
+    return render_template('staff_management/index.html')
 
 @staff_mgmt_bp.route('/add')
 def add_staff_page():
@@ -153,3 +152,11 @@ def api_get_staff_stats():
             'officeStaff': len(office_staff)
         }
     })
+
+@staff_mgmt_bp.route('/api/departments', methods=['GET'])
+def api_get_departments():
+    if not chief_office_staff_required():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    
+    departments = get_departments_service()
+    return jsonify({'success': True, 'data': departments})

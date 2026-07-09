@@ -49,7 +49,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <!-- Left Side - Brand -->
-            <a class="navbar-brand" href="{{ url_for('auth.patient_login') }}">
+            <a class="navbar-brand>
                 <i class="bi bi-hospital"></i> Hospital MS
             </a>
 
@@ -141,7 +141,7 @@
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'icd.manage_icd' %}active{% endif %}"
                             href="{{ url_for('icd.manage_icd') }}">
-                            <i class="bi bi-code-square"></i> ICD Codes
+                            <i class="bi bi-code-square"></i> Data Management
                         </a>
                     </li>
                     <li class="nav-item">

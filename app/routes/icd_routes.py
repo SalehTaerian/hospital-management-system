@@ -480,3 +480,151 @@ def api_get_admissions_dropdown():
 def api_get_rooms_dropdown():
     results = get_all_rooms_for_dropdown_service()
     return jsonify({'success': True, 'data': results})
+
+@icd_bp.route('/api/specialization', methods=['GET'])
+def api_get_specializations():
+    try:
+        results = get_all_specializations_service()
+        return jsonify({'success': True, 'data': results})
+    except Exception as e:
+        print(f"Error in /api/specializations: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@icd_bp.route('/api/specialization/<int:specID>', methods=['GET'])
+def api_get_specialization(specID):
+    try:
+        result = get_specialization_by_id_service(specID)
+        if not result:
+            return jsonify({'success': False, 'error': 'Specialization not found'}), 404
+        return jsonify({'success': True, 'data': result})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@icd_bp.route('/api/specialization', methods=['POST'])
+def api_create_specialization():
+    if session.get('user_role') != 'officeStaff':
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    try:
+        data = request.get_json()
+        specID = create_specialization_service(data)
+        return jsonify({
+            'success': True,
+            'message': 'Specialization created successfully',
+            'id': specID
+        })
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@icd_bp.route('/api/specialization/<int:specID>', methods=['PUT'])
+def api_update_specialization(specID):
+    if session.get('user_role') != 'officeStaff':
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    try:
+        data = request.get_json()
+        result = update_specialization_service(specID, data)
+        return jsonify({
+            'success': True,
+            'message': 'Specialization updated successfully',
+            'id': result
+        })
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@icd_bp.route('/api/specialization/<int:specID>', methods=['DELETE'])
+def api_delete_specialization(specID):
+    if session.get('user_role') != 'officeStaff':
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    try:
+        result = delete_specialization_service(specID)
+        return jsonify({
+            'success': True,
+            'message': 'Specialization deleted successfully',
+            'id': result
+        })
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@icd_bp.route('/api/medicine-conflict', methods=['GET'])
+def api_get_medicine_conflicts():
+    print("test2222")
+    try:
+        results = get_all_medicine_conflicts_service()
+        return jsonify({'success': True, 'data': results})
+    except Exception as e:
+        print(f"Error in /api/medicine-conflicts: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@icd_bp.route('/api/medicine-conflict/<int:medconfID>', methods=['GET'])
+def api_get_medicine_conflict(medconfID):
+    try:
+        result = get_medicine_conflict_by_id_service(medconfID)
+        if not result:
+            return jsonify({'success': False, 'error': 'Medicine conflict not found'}), 404
+        return jsonify({'success': True, 'data': result})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@icd_bp.route('/api/medicine-conflicts', methods=['POST'])
+def api_create_medicine_conflict():
+    if session.get('user_role') != 'officeStaff':
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    try:
+        data = request.get_json()
+        medconfID = create_medicine_conflict_service(data)
+        return jsonify({
+            'success': True,
+            'message': 'Medicine conflict created successfully',
+            'id': medconfID
+        })
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@icd_bp.route('/api/medicine-conflict/<int:medconfID>', methods=['PUT'])
+def api_update_medicine_conflict(medconfID):
+    if session.get('user_role') != 'officeStaff':
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    try:
+        data = request.get_json()
+        result = update_medicine_conflict_service(medconfID, data)
+        return jsonify({
+            'success': True,
+            'message': 'Medicine conflict updated successfully',
+            'id': result
+        })
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@icd_bp.route('/api/medicine-conflict/<int:medconfID>', methods=['DELETE'])
+def api_delete_medicine_conflict(medconfID):
+    if session.get('user_role') != 'officeStaff':
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    try:
+        result = delete_medicine_conflict_service(medconfID)
+        return jsonify({
+            'success': True,
+            'message': 'Medicine conflict deleted successfully',
+            'id': result
+        })
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@icd_bp.route('/api/medicines/dropdown', methods=['GET'])
+def api_get_medicines_dropdown():
+    try:
+        results = get_all_medicines_for_dropdown_service()
+        return jsonify({'success': True, 'data': results})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
