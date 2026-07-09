@@ -224,3 +224,117 @@ def get_patient_admission_by_id(admID, patient_id):
         fetch_one=True,
         fetch_dict=True
     )
+    
+def get_patient_insurance(patient_id):
+    query = """
+        SELECT 
+            insuranceID,
+            name,
+            coveragePercentage,
+            policyNumber,
+            startDate,
+            endDate,
+            createdAt
+        FROM insurance
+        WHERE pID = %s
+        ORDER BY createdAt DESC
+        LIMIT 1
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        (patient_id,),
+        fetch_one=True,
+        fetch_dict=True
+    )
+
+def get_insurance_by_id(insurance_id, patient_id):
+    query = """
+        SELECT 
+            insuranceID,
+            name,
+            coveragePercentage,
+            policyNumber,
+            startDate,
+            endDate,
+            createdAt
+        FROM insurance
+        WHERE insuranceID = %s AND pID = %s
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        (insurance_id, patient_id),
+        fetch_one=True,
+        fetch_dict=True
+    )
+
+def check_insurance_exists(patient_id):
+    query = "SELECT insuranceID FROM insurance WHERE pID = %s"
+    result = DatabaseConnection.execute_query(
+        query,
+        (patient_id,),
+        fetch_one=True,
+        fetch_dict=True
+    )
+    return result is not None
+
+def create_insurance(data):
+    query = """
+        INSERT INTO insurance (
+            pID, name, coveragePercentage, policyNumber, startDate, endDate
+        ) VALUES (
+            %s, %s, %s, %s, %s, %s
+        )
+        RETURNING insuranceID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (
+            data.get('pID'),
+            data.get('name'),
+            data.get('coveragePercentage'),
+            data.get('policyNumber'),
+            data.get('startDate'),
+            data.get('endDate')
+        ),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def update_insurance(insurance_id, data):
+    query = """
+        UPDATE insurance
+        SET 
+            name = %s,
+            coveragePercentage = %s,
+            policyNumber = %s,
+            startDate = %s,
+            endDate = %s
+        WHERE insuranceID = %s AND pID = %s
+        RETURNING insuranceID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (
+            data.get('name'),
+            data.get('coveragePercentage'),
+            data.get('policyNumber'),
+            data.get('startDate'),
+            data.get('endDate'),
+            insurance_id,
+            data.get('pID')
+        ),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def delete_insurance(insurance_id, patient_id):
+    query = "DELETE FROM insurance WHERE insuranceID = %s AND pID = %s RETURNING insuranceID"
+    result = DatabaseConnection.execute_query(
+        query,
+        (insurance_id, patient_id),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None

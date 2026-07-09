@@ -50,7 +50,7 @@
         <div class="container">
             <!-- Left Side - Brand -->
             <a class="navbar-brand>
-                <i class="bi bi-hospital"></i> Hospital MS
+                <i class=" bi bi-hospital"></i> Hospital MS
             </a>
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -90,6 +90,12 @@
                         <a class="nav-link {% if request.endpoint == 'patient.patient_admissions' %}active{% endif %}"
                             href="{{ url_for('patient.patient_admissions') }}">
                             <i class="bi bi-hospital"></i> Admissions
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'patient.patient_insurance' %}active{% endif %}"
+                            href="{{ url_for('patient.patient_insurance') }}">
+                            <i class="bi bi-shield-check"></i> Insurance
                         </a>
                     </li>
                     {% endif %}

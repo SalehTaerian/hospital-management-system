@@ -121,3 +121,81 @@ def api_get_patient_admission(admID):
         return jsonify({'success': True, 'data': admission})
     except ValueError as e:
         return jsonify({'success': False, 'error': str(e)}), 404
+    
+@patient_bp.route('/insurance')
+def patient_insurance():
+    if not patient_login_required():
+        return redirect('/patient-login')
+    
+    return render_template('patient/insurance.html')
+
+@patient_bp.route('/api/insurance', methods=['GET'])
+def api_get_patient_insurance():
+    if not patient_login_required():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    
+    patient_id = session.get('user_id')
+    insurance = get_patient_insurance_service(patient_id)
+    return jsonify({'success': True, 'data': insurance})
+
+@patient_bp.route('/api/insurance/<int:insurance_id>', methods=['GET'])
+def api_get_insurance_by_id(insurance_id):
+    if not patient_login_required():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    
+    try:
+        patient_id = session.get('user_id')
+        insurance = get_insurance_by_id_service(insurance_id, patient_id)
+        return jsonify({'success': True, 'data': insurance})
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 404
+
+@patient_bp.route('/api/insurance', methods=['POST'])
+def api_create_insurance():
+    if not patient_login_required():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    
+    try:
+        data = request.get_json()
+        data['pID'] = session.get('user_id')
+        insurance_id = create_insurance_service(data)
+        return jsonify({
+            'success': True,
+            'message': 'Insurance added successfully',
+            'id': insurance_id
+        })
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@patient_bp.route('/api/insurance/<int:insurance_id>', methods=['PUT'])
+def api_update_insurance(insurance_id):
+    if not patient_login_required():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    
+    try:
+        data = request.get_json()
+        data['pID'] = session.get('user_id')
+        result = update_insurance_service(insurance_id, data)
+        return jsonify({
+            'success': True,
+            'message': 'Insurance updated successfully',
+            'id': result
+        })
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@patient_bp.route('/api/insurance/<int:insurance_id>', methods=['DELETE'])
+def api_delete_insurance(insurance_id):
+    if not patient_login_required():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    
+    try:
+        patient_id = session.get('user_id')
+        result = delete_insurance_service(insurance_id, patient_id)
+        return jsonify({
+            'success': True,
+            'message': 'Insurance deleted successfully',
+            'id': result
+        })
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400

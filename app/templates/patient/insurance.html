@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+
+{% block title %}My Insurance{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body py-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0"><i class="bi bi-shield-check"></i> My Insurance</h2>
+                        <p class="mb-0 mt-2">Manage your insurance policy</p>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> My Insurance Policy</h5>
+            </div>
+            <div class="card-body">
+                <div id="insuranceContainer">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p>Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Insurance Modal -->
+<div class="modal fade" id="insuranceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="insuranceModalLabel">Add Insurance</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="insuranceForm">
+                    <input type="hidden" id="insuranceId">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Insurance Company</label>
+                        <input type="text" class="form-control" id="insuranceName" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Policy Number</label>
+                        <input type="text" class="form-control" id="policyNumber" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Coverage Percentage</label>
+                        <input type="number" class="form-control" id="coveragePercentage" step="0.01" min="0" max="100" placeholder="80.00">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="startDate" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="endDate" required>
+                        </div>
+                    </div>
+                    
+                    <div id="formMessage" class="alert d-none"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveInsuranceBtn">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete your insurance policy?</p>
+                <input type="hidden" id="deleteInsuranceId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Add Insurance button (main)
+    $('#addInsuranceBtn').on('click', function() {
+        $('#insuranceModalLabel').text('Add Insurance');
+        $('#insuranceId').val('');
+        $('#insuranceForm')[0].reset();
+        $('#formMessage').addClass('d-none');
+        $('#insuranceModal').modal('show');
+    });
+    
+    // Save button
+    $('#saveInsuranceBtn').on('click', function() {
+        saveInsurance();
+    });
+    
+    // Delete confirmation
+    $('#confirmDeleteBtn').on('click', function() {
+        deleteInsurance();
+    });
+    
+    // Load insurance data
+    loadInsurance();
+});
+
+function loadInsurance() {
+    $.ajax({
+        url: '/patient/api/insurance',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#insuranceContainer');
+            container.empty();
+            
+            if (response.success && response.data) {
+                var ins = response.data;
+                var coverage = ins.coveragepercentage || 0;
+                var status = ins.enddate && new Date(ins.enddate) < new Date() ? 
+                    '<span class="badge bg-danger">Expired</span>' : 
+                    '<span class="badge bg-success">Active</span>';
+                
+                var html = `
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h5><strong>${ins.name}</strong></h5>
+                                    <p class="mb-1">
+                                        <strong>Policy Number:</strong> ${ins.policynumber}
+                                    </p>
+                                    <p class="mb-1">
+                                        <strong>Coverage:</strong> ${coverage}%
+                                    </p>
+                                    <p class="mb-1">
+                                        <strong>Period:</strong> ${ins.startdate} to ${ins.enddate}
+                                    </p>
+                                    <p class="mb-1">
+                                        <strong>Status:</strong> ${status}
+                                    </p>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <button class="btn btn-sm btn-primary btn-edit-insurance" 
+                                            data-id="${ins.insuranceid}"
+                                            data-name="${ins.name}"
+                                            data-policy="${ins.policynumber}"
+                                            data-coverage="${ins.coveragepercentage || 0}"
+                                            data-start="${ins.startdate}"
+                                            data-end="${ins.enddate}">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </button>
+                                    <button class="btn btn-sm btn-danger btn-delete-insurance" 
+                                            data-id="${ins.insuranceid}"
+                                            data-name="${ins.name}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.html(html);
+                
+                $('.btn-edit-insurance').on('click', function() {
+                    var id = $(this).data('id');
+                    var name = $(this).data('name');
+                    var policy = $(this).data('policy');
+                    var coverage = $(this).data('coverage');
+                    var start = $(this).data('start');
+                    var end = $(this).data('end');
+                    
+                    $('#insuranceModalLabel').text('Edit Insurance');
+                    $('#insuranceId').val(id);
+                    $('#insuranceName').val(name);
+                    $('#policyNumber').val(policy);
+                    $('#coveragePercentage').val(coverage);
+                    $('#startDate').val(start);
+                    $('#endDate').val(end);
+                    $('#formMessage').addClass('d-none');
+                    $('#insuranceModal').modal('show');
+                });
+                
+                $('.btn-delete-insurance').on('click', function() {
+                    var id = $(this).data('id');
+                    var name = $(this).data('name');
+                    $('#deleteInsuranceId').val(id);
+                    $('#deleteModal').modal('show');
+                });
+                
+            } else {
+                container.html(`
+                    <div class="text-center py-4">
+                        <i class="bi bi-shield-slash display-4 text-muted"></i>
+                        <p class="mt-2">No insurance policy found</p>
+                        <button class="btn btn-primary btn-sm" id="addInsuranceBtnEmpty">
+                            <i class="bi bi-plus-circle"></i> Add Insurance
+                        </button>
+                    </div>
+                `);
+                
+                // Add button in empty state
+                $('#addInsuranceBtnEmpty').on('click', function() {
+                    $('#insuranceModalLabel').text('Add Insurance');
+                    $('#insuranceId').val('');
+                    $('#insuranceForm')[0].reset();
+                    $('#formMessage').addClass('d-none');
+                    $('#insuranceModal').modal('show');
+                });
+            }
+        },
+        error: function() {
+            $('#insuranceContainer').html('<div class="alert alert-danger">Error loading insurance data</div>');
+        }
+    });
+}
+
+function saveInsurance() {
+    var id = $('#insuranceId').val();
+    var data = {
+        name: $('#insuranceName').val(),
+        policyNumber: $('#policyNumber').val(),
+        coveragePercentage: $('#coveragePercentage').val() || 0,
+        startDate: $('#startDate').val(),
+        endDate: $('#endDate').val()
+    };
+    
+    if (!data.name || !data.policyNumber || !data.startDate || !data.endDate) {
+        showMessage('Please fill in all required fields', 'danger');
+        return;
+    }
+    
+    var url = '/patient/api/insurance';
+    var method = 'POST';
+    if (id) {
+        url = '/patient/api/insurance/' + id;
+        method = 'PUT';
+    }
+    
+    $('#saveInsuranceBtn').prop('disabled', true).text('Saving...');
+    
+    $.ajax({
+        url: url,
+        method: method,
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function(response) {
+            if (response.success) {
+                $('#insuranceModal').modal('hide');
+                loadInsurance();
+                showMessage('✅ Insurance saved successfully!', 'success');
+            } else {
+                showMessage('❌ Error: ' + response.error, 'danger');
+            }
+            $('#saveInsuranceBtn').prop('disabled', false).text('Save');
+        },
+        error: function(xhr) {
+            $('#saveInsuranceBtn').prop('disabled', false).text('Save');
+            try {
+                var response = JSON.parse(xhr.responseText);
+                showMessage('❌ Error: ' + (response.error || xhr.statusText), 'danger');
+            } catch(e) {
+                showMessage('❌ Error: ' + xhr.statusText, 'danger');
+            }
+        }
+    });
+}
+
+function deleteInsurance() {
+    var id = $('#deleteInsuranceId').val();
+    
+    $.ajax({
+        url: '/patient/api/insurance/' + id,
+        method: 'DELETE',
+        success: function(response) {
+            if (response.success) {
+                $('#deleteModal').modal('hide');
+                loadInsurance();
+                showMessage('✅ Insurance deleted successfully!', 'success');
+            } else {
+                showMessage('❌ Error: ' + response.error, 'danger');
+            }
+        },
+        error: function(xhr) {
+            try {
+                var response = JSON.parse(xhr.responseText);
+                showMessage('❌ Error: ' + (response.error || xhr.statusText), 'danger');
+            } catch(e) {
+                showMessage('❌ Error: ' + xhr.statusText, 'danger');
+            }
+        }
+    });
+}
+
+function showMessage(message, type) {
+    var msg = $('#formMessage');
+    msg.removeClass('d-none alert-success alert-danger').addClass('alert-' + type).text(message);
+}
+</script>
+{% endblock %}
