@@ -1,6 +1,9 @@
 from app.database.queries.staff_management_queries import *
 from app.database.queries.auth_queries import create_employee, assign_employee_role, check_employee_exists
 
+def get_departments_service():
+    return get_departments()
+
 def get_all_staff_service():
     return get_all_staff()
 
@@ -29,6 +32,30 @@ def create_employee_service(data):
     
     assign_employee_role(employee_id, data['accessLevel'])
     
+    role = data['accessLevel']
+    medical_number = data.get('medicalNumber', '')
+    
+    if role == 'doctor':
+        visit_cost = data.get('visitCost', 0)
+        update_doctor_details(employee_id, medical_number, visit_cost)
+        
+        specializations = data.get('specializations', [])
+        if specializations:
+            for specID in specializations:
+                assign_doctor_specialization(employee_id, specID)
+                
+    elif role == 'surgeon':
+        surgical_field = data.get('surgicalField', '')
+        update_surgeon_details(employee_id, medical_number, surgical_field)
+        
+        specializations = data.get('specializations', [])
+        if specializations:
+            for specID in specializations:
+                assign_surgeon_specialization(employee_id, specID)
+                
+    elif role == 'nurse':
+        update_nurse_details(employee_id, medical_number)
+    
     return employee_id
 
 def update_employee_service(employee_id, data):
@@ -36,7 +63,39 @@ def update_employee_service(employee_id, data):
     if not existing:
         raise ValueError(f"Staff member with ID {employee_id} not found")
     
-    return update_employee(employee_id, data)
+    result = update_employee(employee_id, data)
+    
+    medical_number = data.get('medicalNumber', '')
+    if medical_number:
+        role = existing.get('role', '').lower()
+        if role == 'doctor':
+            update_doctor_medical_number(employee_id, medical_number)
+        elif role == 'surgeon':
+            update_surgeon_medical_number(employee_id, medical_number)
+        elif role == 'nurse':
+            update_nurse_medical_number(employee_id, medical_number)
+    
+    visit_cost = data.get('visitCost')
+    if visit_cost is not None and existing.get('role', '').lower() == 'doctor':
+        update_doctor_visit_cost(employee_id, visit_cost)
+    
+    specializations = data.get('specializations', [])
+    if specializations and isinstance(specializations, list):
+        role = existing.get('role', '').lower()
+        if role == 'doctor':
+            current_specs = get_doctor_specializations(employee_id)
+            for spec in current_specs:
+                remove_doctor_specialization(employee_id, spec['specid'])
+            for specID in specializations:
+                assign_doctor_specialization(employee_id, specID)
+        elif role == 'surgeon':
+            current_specs = get_surgeon_specializations(employee_id)
+            for spec in current_specs:
+                remove_surgeon_specialization(employee_id, spec['specid'])
+            for specID in specializations:
+                assign_surgeon_specialization(employee_id, specID)
+    
+    return result
 
 def delete_employee_service(employee_id):
     existing = get_staff_by_id(employee_id)
@@ -61,3 +120,15 @@ def get_staff_count_service():
 
 def get_staff_by_role_service(role):
     return get_staff_by_role(role)
+
+def assign_doctor_specialization_service(doctor_id, spec_id):
+    return assign_doctor_specialization(doctor_id, spec_id)
+
+def remove_doctor_specialization_service(doctor_id, spec_id):
+    return remove_doctor_specialization(doctor_id, spec_id)
+
+def assign_surgeon_specialization_service(surgeon_id, spec_id):
+    return assign_surgeon_specialization(surgeon_id, spec_id)
+
+def remove_surgeon_specialization_service(surgeon_id, spec_id):
+    return remove_surgeon_specialization(surgeon_id, spec_id)

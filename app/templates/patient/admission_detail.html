@@ -20,6 +20,9 @@
     </div>
 </div>
 
+<!-- Hidden input for admission ID -->
+<input type="hidden" id="admId" value="{{ admID }}">
+
 <div class="row mt-4">
     <div class="col-12">
         <div class="card shadow" id="detailContainer">
@@ -35,11 +38,12 @@
 {% block scripts %}
 <script>
 $(document).ready(function() {
-    loadAdmissionDetail();
+    // Get admission ID from hidden input
+    var admId = parseInt(document.getElementById('admId').value) || 0;
+    loadAdmissionDetail(admId);
 });
 
-function loadAdmissionDetail() {
-    var admId = {{ admID }};
+function loadAdmissionDetail(admId) {
     $.ajax({
         url: '/patient/api/admissions/' + admId,
         method: 'GET',

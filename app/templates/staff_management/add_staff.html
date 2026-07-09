@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Add Staff{% endblock %}
+{% block title %}Add Staff Member{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -11,6 +11,8 @@
             </div>
             <div class="card-body">
                 <form id="addStaffForm">
+                    <!-- Personal Information -->
+                    <h6 class="border-bottom pb-2 mb-3">Personal Information</h6>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">First Name</label>
@@ -21,7 +23,7 @@
                             <input type="text" class="form-control" id="lastName" required>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">National Code</label>
@@ -32,7 +34,9 @@
                             <input type="password" class="form-control" id="password">
                         </div>
                     </div>
-                    
+
+                    <!-- Employment Information -->
+                    <h6 class="border-bottom pb-2 mb-3 mt-4">Employment Information</h6>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Contract Type</label>
@@ -47,7 +51,7 @@
                             <input type="date" class="form-control" id="hireDate">
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Department</label>
@@ -59,7 +63,16 @@
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Role</label>
+                            <label class="form-label">Salary</label>
+                            <input type="number" class="form-control" id="salary" step="0.01">
+                        </div>
+                    </div>
+
+                    <!-- Role Selection -->
+                    <h6 class="border-bottom pb-2 mb-3 mt-4">Role & Specialization</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Access Level (Role)</label>
                             <select class="form-control" id="accessLevel" required>
                                 <option value="">Select...</option>
                                 <option value="doctor">Doctor</option>
@@ -68,15 +81,29 @@
                                 <option value="officeStaff">Office Staff</option>
                             </select>
                         </div>
+                        <div class="col-md-6 mb-3" id="medicalNumberContainer" style="display:none;">
+                            <label class="form-label">Medical Number</label>
+                            <input type="text" class="form-control" id="medicalNumber" placeholder="Enter medical number...">
+                        </div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Salary</label>
-                        <input type="number" class="form-control" id="salary" step="0.01">
+
+                    <!-- Specializations (Doctor/Surgeon only) -->
+                    <div class="mb-3" id="specializationContainer" style="display:none;">
+                        <label class="form-label">Specializations</label>
+                        <select class="form-control" id="specializations" multiple style="height:120px;">
+                            <!-- Options loaded via JavaScript -->
+                        </select>
+                        <small class="text-muted">Hold Ctrl to select multiple</small>
                     </div>
-                    
+
+                    <!-- Visit Cost (Doctor only) -->
+                    <div class="mb-3" id="visitCostContainer" style="display:none;">
+                        <label class="form-label">Visit Cost</label>
+                        <input type="number" class="form-control" id="visitCost" step="0.01" placeholder="0.00">
+                    </div>
+
                     <div id="formMessage" class="alert d-none"></div>
-                    
+
                     <button type="submit" class="btn btn-primary">Add Staff</button>
                     <a href="{{ url_for('staff_management.index') }}" class="btn btn-secondary">Cancel</a>
                 </form>
@@ -89,13 +116,65 @@
 {% block scripts %}
 <script>
 $(document).ready(function() {
+    // Load specializations when page loads
+    loadSpecializations();
+
+    // Show/hide role-specific fields based on selection
+    $('#accessLevel').on('change', function() {
+        var level = $(this).val();
+        
+        // Hide all role-specific containers first
+        $('#specializationContainer').hide();
+        $('#visitCostContainer').hide();
+        $('#medicalNumberContainer').hide();
+
+        if (level === 'doctor') {
+            $('#specializationContainer').show();
+            $('#visitCostContainer').show();
+            $('#medicalNumberContainer').show();
+            loadSpecializations();
+        } else if (level === 'surgeon') {
+            $('#specializationContainer').show();
+            $('#medicalNumberContainer').show();
+            loadSpecializations();
+        } else if (level === 'nurse') {
+            $('#medicalNumberContainer').show();
+        }
+    });
+
+    // Form submission
     $('#addStaffForm').on('submit', function(e) {
         e.preventDefault();
         addStaff();
     });
 });
 
+function loadSpecializations() {
+    $.ajax({
+        url: '/icd/api/specialization',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var select = $('#specializations');
+                select.empty();
+                if (response.data && response.data.length > 0) {
+                    $.each(response.data, function(i, spec) {
+                        select.append('<option value="' + spec.id + '">' + spec.name + '</option>');
+                    });
+                } else {
+                    select.append('<option value="">No specializations available</option>');
+                }
+            }
+        },
+        error: function(xhr) {
+            console.error('Error loading specializations:', xhr);
+        }
+    });
+}
+
 function addStaff() {
+    var role = $('#accessLevel').val();
+    
     var data = {
         firstName: $('#firstName').val(),
         lastName: $('#lastName').val(),
@@ -104,16 +183,29 @@ function addStaff() {
         contractType: $('#contractType').val(),
         hireDate: $('#hireDate').val(),
         departID: $('#department').val(),
-        accessLevel: $('#accessLevel').val(),
-        salary: $('#salary').val()
+        accessLevel: role,
+        salary: $('#salary').val(),
+        medicalNumber: $('#medicalNumber').val() || '',
+        specializations: $('#specializations').val() || []
     };
-    
+
+    // Add role-specific fields
+    if (role === 'doctor') {
+        data.visitCost = $('#visitCost').val() || 0;
+    }
+
     // Validate
-    if (!data.firstName || !data.lastName || !data.nationalCode || !data.accessLevel) {
+    if (!data.firstName || !data.lastName || !data.nationalCode || !data.contractType || !data.departID || !data.accessLevel) {
         showMessage('Please fill in all required fields', 'danger');
         return;
     }
-    
+
+    // Validate medical number for doctor, surgeon, nurse
+    if ((role === 'doctor' || role === 'surgeon' || role === 'nurse') && !data.medicalNumber) {
+        showMessage('Medical number is required for ' + role, 'danger');
+        return;
+    }
+
     $.ajax({
         url: '/staff-management/api/staff',
         method: 'POST',
@@ -132,7 +224,7 @@ function addStaff() {
         error: function(xhr) {
             try {
                 var response = JSON.parse(xhr.responseText);
-                showMessage('❌ Error: ' + response.error, 'danger');
+                showMessage('❌ Error: ' + (response.error || xhr.statusText), 'danger');
             } catch(e) {
                 showMessage('❌ Error: ' + xhr.statusText, 'danger');
             }
@@ -143,7 +235,7 @@ function addStaff() {
 function showMessage(message, type) {
     var msg = $('#formMessage');
     msg.removeClass('d-none alert-success alert-danger')
-       .addClass(`alert-${type}`)
+       .addClass('alert-' + type)
        .text(message);
 }
 </script>

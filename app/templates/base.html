@@ -49,8 +49,8 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <!-- Left Side - Brand -->
-            <a class="navbar-brand" href="{{ url_for('auth.patient_login') }}">
-                <i class="bi bi-hospital"></i> Hospital MS
+            <a class="navbar-brand>
+                <i class=" bi bi-hospital"></i> Hospital MS
             </a>
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -90,6 +90,12 @@
                         <a class="nav-link {% if request.endpoint == 'patient.patient_admissions' %}active{% endif %}"
                             href="{{ url_for('patient.patient_admissions') }}">
                             <i class="bi bi-hospital"></i> Admissions
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'patient.patient_insurance' %}active{% endif %}"
+                            href="{{ url_for('patient.patient_insurance') }}">
+                            <i class="bi bi-shield-check"></i> Insurance
                         </a>
                     </li>
                     {% endif %}
@@ -141,7 +147,7 @@
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'icd.manage_icd' %}active{% endif %}"
                             href="{{ url_for('icd.manage_icd') }}">
-                            <i class="bi bi-code-square"></i> ICD Codes
+                            <i class="bi bi-code-square"></i> Data Management
                         </a>
                     </li>
                     <li class="nav-item">

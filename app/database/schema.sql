@@ -78,8 +78,7 @@ CREATE TABLE officeStaff (
 
 CREATE TABLE nurse (
     employeeID INTEGER NOT NULL PRIMARY KEY REFERENCES employee (employeeID) ON DELETE CASCADE,
-    medicalNumber VARCHAR(20),
-    grade VARCHAR(30)
+    medicalNumber VARCHAR(20)
 );
 
 

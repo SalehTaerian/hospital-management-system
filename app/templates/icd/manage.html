@@ -1,14 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}ICD Code Management{% endblock %}
+{% block title %}Data Management{% endblock %}
 
 {% block content %}
 <div class="card">
     <div class="card-header bg-primary text-white">
-        <h4 class="mb-0"><i class="bi bi-code-square"></i> ICD Code Management</h4>
+        <h4 class="mb-0"><i class="bi bi-database"></i> Data Management</h4>
     </div>
     <div class="card-body">
-        <!-- Tabs -->
         <ul class="nav nav-tabs" id="icdTabs" role="tablist">
             <li class="nav-item">
                 <button class="nav-link active" id="icd-tab" data-bs-toggle="tab" data-bs-target="#icd" type="button">
@@ -56,10 +55,19 @@
                     <i class="bi bi-clock-history"></i> Bed History
                 </button>
             </li>
+            <li class="nav-item">
+                <button class="nav-link" id="specialization-tab" data-bs-toggle="tab" data-bs-target="#specialization" type="button">
+                    <i class="bi bi-tags"></i> Specializations
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="medicine-conflict-tab" data-bs-toggle="tab" data-bs-target="#medicine-conflict" type="button">
+                    <i class="bi bi-exclamation-triangle"></i> Medicine Conflicts
+                </button>
+            </li>
             {% endif %}
         </ul>
 
-        <!-- Tab Content -->
         <div class="tab-content pt-3">
             <!-- ICD Tab -->
             <div class="tab-pane fade show active" id="icd">
@@ -308,6 +316,56 @@
                     </table>
                 </div>
             </div>
+
+            <!-- Specialization Tab -->
+            <div class="tab-pane fade" id="specialization">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5>Specialization Fields</h5>
+                    <button class="btn btn-primary btn-add-specialization">
+                        <i class="bi bi-plus-circle"></i> Add Specialization
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped" id="specialization-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Name</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="3" class="text-center">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Medicine Conflict Tab -->
+            <div class="tab-pane fade" id="medicine-conflict">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5>Medicine Conflicts</h5>
+                    <button class="btn btn-primary btn-add-medicine-conflict">
+                        <i class="bi bi-plus-circle"></i> Add Conflict
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped" id="medicine-conflict-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Department</th>
+                                <th>Medicine 1</th>
+                                <th>Medicine 2</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="5" class="text-center">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
             {% endif %}
         </div>
     </div>
@@ -322,11 +380,9 @@
 $(document).ready(function() {
     $('.field-code, .field-icdm, .field-cost').hide();
 
-    // Tab click - load data
     $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function(e) {
         var target = $(e.target).attr('data-bs-target');
         var type = target.replace('#', '');
-
         if (type === 'signtype') {
             loadSigntypes();
         } else if (type === 'parameter') {
@@ -337,27 +393,30 @@ $(document).ready(function() {
             loadBeds();
         } else if (type === 'bedinfo') {
             loadBedinfo();
+        } else if (type === 'specialization') {
+            loadSpecializations();
+        } else if (type === 'medicine-conflict') {
+            loadMedicineConflicts();
         } else {
             loadData(type);
         }
     });
 
-    // Load initial data
     loadData('icd');
     loadSigntypes();
     loadParameters();
     loadEquipment();
     loadBeds();
     loadBedinfo();
+    loadSpecializations();
+    loadMedicineConflicts();
 
-    // ==================== ICD ADD BUTTONS ====================
     $(document).on('click', '.btn-add', function() {
         var type = $(this).data('type');
         $('#addForm').attr('data-type', type);
         $('#addModalLabel').text('Add ' + getTypeLabel(type));
         $('#addForm')[0].reset();
         $('.field-code, .field-icdm, .field-cost').hide();
-
         if (type === 'icd') {
             $('.field-code').show();
         } else if (type === 'icdm') {
@@ -369,13 +428,11 @@ $(document).ready(function() {
         $('#addModal').modal('show');
     });
 
-    // ==================== ICD EDIT BUTTONS ====================
     $(document).on('click', '.btn-edit', function() {
         var id = $(this).data('id');
         var type = $(this).data('type');
         $('#editForm').attr('data-type', type);
         $('#editForm').attr('data-id', id);
-
         $.ajax({
             url: '/icd/api/' + type + '/' + id,
             method: 'GET',
@@ -386,7 +443,6 @@ $(document).ready(function() {
                     $('#edit_id').val(data.id);
                     $('#edit_name').val(data.name || '');
                     $('.field-code, .field-icdm, .field-cost').hide();
-
                     if (type === 'icd') {
                         $('.field-code').show();
                         $('#edit_code').val(data.code || '');
@@ -409,7 +465,6 @@ $(document).ready(function() {
         });
     });
 
-    // ==================== ICD DELETE BUTTONS ====================
     $(document).on('click', '.btn-delete', function() {
         var id = $(this).data('id');
         var type = $(this).data('type');
@@ -421,14 +476,12 @@ $(document).ready(function() {
         $('#deleteModal').modal('show');
     });
 
-    // ==================== SEARCH ====================
     $(document).on('keyup', '.search-input', function() {
         var type = $(this).data('type');
         var search = $(this).val();
         loadData(type, search);
     });
 
-    // ==================== ADD FORM ====================
     $('#addForm').on('submit', function(e) {
         e.preventDefault();
         var type = $(this).attr('data-type');
@@ -445,7 +498,6 @@ $(document).ready(function() {
         submitForm(type, 'add', data);
     });
 
-    // ==================== EDIT FORM ====================
     $('#editForm').on('submit', function(e) {
         e.preventDefault();
         var type = $(this).attr('data-type');
@@ -463,7 +515,6 @@ $(document).ready(function() {
         submitForm(type, 'edit', data, id);
     });
 
-    // ==================== DELETE FORM ====================
     $('#deleteForm').on('submit', function(e) {
         e.preventDefault();
         var type = $(this).data('type');
@@ -482,7 +533,6 @@ $(document).ready(function() {
         });
     });
 
-    // ==================== SIGN TYPE HANDLERS ====================
     $(document).on('click', '.btn-add-signtype', function() {
         $('#signtypeModalLabel').text('Add Sign Type');
         $('#signtypeId').val('');
@@ -510,7 +560,6 @@ $(document).ready(function() {
         deleteSigntype();
     });
 
-    // ==================== PARAMETER HANDLERS ====================
     $(document).on('click', '.btn-add-parameter', function() {
         $('#parameterModalLabel').text('Add Parameter');
         $('#parameterId').val('');
@@ -538,7 +587,6 @@ $(document).ready(function() {
         deleteParameter();
     });
 
-    // ==================== EQUIPMENT HANDLERS ====================
     $(document).on('click', '.btn-add-equipment', function() {
         $('#equipmentModalLabel').text('Add Equipment');
         $('#equipmentId').val('');
@@ -568,7 +616,6 @@ $(document).ready(function() {
         deleteEquipment();
     });
 
-    // ==================== BED HANDLERS ====================
     $(document).on('click', '.btn-add-bed', function() {
         $('#bedModalLabel').text('Add Bed');
         $('#bedId').val('');
@@ -596,7 +643,6 @@ $(document).ready(function() {
         deleteBed();
     });
 
-    // ==================== BEDINFO HANDLERS ====================
     $(document).on('click', '.btn-add-bedinfo', function() {
         $('#bedinfoModalLabel').text('Add Bed Record');
         $('#bedinfoId').val('');
@@ -625,9 +671,63 @@ $(document).ready(function() {
     $('#confirmDeleteBedinfoBtn').on('click', function() {
         deleteBedinfo();
     });
-});
 
-// ==================== ICD FUNCTIONS ====================
+    $(document).on('click', '.btn-add-specialization', function() {
+        $('#specializationModalLabel').text('Add Specialization');
+        $('#specializationId').val('');
+        $('#specializationForm')[0].reset();
+        $('#specializationMessage').addClass('d-none');
+        $('#specializationModal').modal('show');
+    });
+
+    $(document).on('click', '.btn-edit-specialization', function() {
+        var id = $(this).data('id');
+        editSpecialization(id);
+    });
+
+    $(document).on('click', '.btn-delete-specialization', function() {
+        var id = $(this).data('id');
+        $('#deleteSpecializationId').val(id);
+        $('#deleteSpecializationModal').modal('show');
+    });
+
+    $('#saveSpecializationBtn').on('click', function() {
+        saveSpecialization();
+    });
+
+    $('#confirmDeleteSpecializationBtn').on('click', function() {
+        deleteSpecialization();
+    });
+
+    $(document).on('click', '.btn-add-medicine-conflict', function() {
+        $('#medicineConflictModalLabel').text('Add Medicine Conflict');
+        $('#medicineConflictId').val('');
+        $('#medicineConflictForm')[0].reset();
+        $('#medicineConflictMessage').addClass('d-none');
+        loadMedicineConflictDropdowns();
+        $('#medicineConflictModal').modal('show');
+    });
+
+    $(document).on('click', '.btn-edit-medicine-conflict', function() {
+        var id = $(this).data('id');
+        loadMedicineConflictDropdowns();
+        editMedicineConflict(id);
+    });
+
+    $(document).on('click', '.btn-delete-medicine-conflict', function() {
+        var id = $(this).data('id');
+        $('#deleteMedicineConflictId').val(id);
+        $('#deleteMedicineConflictModal').modal('show');
+    });
+
+    $('#saveMedicineConflictBtn').on('click', function() {
+        saveMedicineConflict();
+    });
+
+    $('#confirmDeleteMedicineConflictBtn').on('click', function() {
+        deleteMedicineConflict();
+    });
+});
 
 function loadData(type, search) {
     search = search || '';
@@ -747,8 +847,6 @@ function loadIcdDropdown(targetId) {
     });
 }
 
-// ==================== SIGN TYPE FUNCTIONS ====================
-
 function loadSigntypes() {
     $.ajax({
         url: '/icd/api/signtypes',
@@ -852,8 +950,6 @@ function showSigntypeMessage(message, type) {
     var msg = $('#signtypeMessage');
     msg.removeClass('d-none alert-success alert-danger').addClass('alert-' + type).text(message);
 }
-
-// ==================== PARAMETER FUNCTIONS ====================
 
 function loadParameters() {
     $.ajax({
@@ -969,8 +1065,6 @@ function showParameterMessage(message, type) {
     var msg = $('#parameterMessage');
     msg.removeClass('d-none alert-success alert-danger').addClass('alert-' + type).text(message);
 }
-
-// ==================== EQUIPMENT FUNCTIONS ====================
 
 function loadEquipment() {
     $.ajax({
@@ -1104,8 +1198,6 @@ function showEquipmentMessage(message, type) {
     msg.removeClass('d-none alert-success alert-danger').addClass('alert-' + type).text(message);
 }
 
-// ==================== BED FUNCTIONS ====================
-
 function loadBeds() {
     $.ajax({
         url: '/icd/api/beds',
@@ -1207,8 +1299,6 @@ function showBedMessage(message, type) {
     msg.removeClass('d-none alert-success alert-danger').addClass('alert-' + type).text(message);
 }
 
-// ==================== BEDINFO FUNCTIONS ====================
-
 function loadBedinfo() {
     $.ajax({
         url: '/icd/api/bedinfo',
@@ -1225,7 +1315,6 @@ function loadBedinfo() {
                         'Maintenance': 'danger'
                     };
                     var color = statusColors[item.status] || 'secondary';
-
                     var row = '<tr>';
                     row += '<td>' + (i + 1) + '</td>';
                     row += '<td><strong>#' + item.bedid + '</strong></td>';
@@ -1266,7 +1355,6 @@ function loadBedinfoDropdowns() {
             }
         }
     });
-
     $.ajax({
         url: '/icd/api/dropdown/rooms',
         method: 'GET',
@@ -1281,7 +1369,6 @@ function loadBedinfoDropdowns() {
             }
         }
     });
-
     $.ajax({
         url: '/icd/api/dropdown/admissions',
         method: 'GET',
@@ -1307,7 +1394,6 @@ function saveBedinfo() {
         startTimestamp: $('#bedinfoStartTime').val(),
         status: $('#bedinfoStatus').val()
     };
-
     if (!data.bedID) {
         showBedinfoMessage('Please select a bed', 'danger');
         return;
@@ -1320,14 +1406,12 @@ function saveBedinfo() {
         showBedinfoMessage('Please select a status', 'danger');
         return;
     }
-
     var url = '/icd/api/bedinfo';
     var method = 'POST';
     if (id) {
         url = '/icd/api/bedinfo/' + id;
         method = 'PUT';
     }
-
     $.ajax({
         url: url,
         method: method,
@@ -1391,6 +1475,267 @@ function deleteBedinfo() {
 
 function showBedinfoMessage(message, type) {
     var msg = $('#bedinfoMessage');
+    msg.removeClass('d-none alert-success alert-danger').addClass('alert-' + type).text(message);
+}
+
+function loadSpecializations() {
+    $.ajax({
+        url: '/icd/api/specialization',
+        method: 'GET',
+        success: function(response) {
+            var tbody = $('#specialization-table tbody');
+            tbody.empty();
+            if (response.success && response.data && response.data.length > 0) {
+                $.each(response.data, function(i, item) {
+                    var row = '<tr>';
+                    row += '<td>' + (i + 1) + '</td>';
+                    row += '<td>' + item.name + '</td>';
+                    row += '<td>' +
+                        '<button class="btn btn-sm btn-primary btn-edit-specialization" data-id="' + item.id + '"><i class="bi bi-pencil"></i></button>' +
+                        '<button class="btn btn-sm btn-danger btn-delete-specialization" data-id="' + item.id + '"><i class="bi bi-trash"></i></button>' +
+                        '</td>';
+                    row += '</tr>';
+                    tbody.append(row);
+                });
+            } else {
+                tbody.html('<tr><td colspan="3" class="text-center">No specializations found</td></tr>');
+            }
+        },
+        error: function(xhr) {
+            console.error('Error loading specializations:', xhr);
+            $('#specialization-table tbody').html('<tr><td colspan="3" class="text-center text-danger">Error loading specializations</td></tr>');
+        }
+    });
+}
+
+function saveSpecialization() {
+    var id = $('#specializationId').val();
+    var data = { name: $('#specializationName').val() };
+    if (!data.name) {
+        showSpecializationMessage('Name is required', 'danger');
+        return;
+    }
+    var url = '/icd/api/specialization';
+    var method = 'POST';
+    if (id) {
+        url = '/icd/api/specialization/' + id;
+        method = 'PUT';
+    }
+    $.ajax({
+        url: url,
+        method: method,
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function(response) {
+            if (response.success) {
+                $('#specializationModal').modal('hide');
+                loadSpecializations();
+            } else {
+                showSpecializationMessage('Error: ' + response.error, 'danger');
+            }
+        },
+        error: function(xhr) {
+            try {
+                var response = JSON.parse(xhr.responseText);
+                showSpecializationMessage('Error: ' + response.error, 'danger');
+            } catch(e) {
+                showSpecializationMessage('Error: ' + xhr.statusText, 'danger');
+            }
+        }
+    });
+}
+
+function editSpecialization(id) {
+    $.ajax({
+        url: '/icd/api/specialization/' + id,
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var data = response.data;
+                $('#specializationModalLabel').text('Edit Specialization');
+                $('#specializationId').val(data.id);
+                $('#specializationName').val(data.name);
+                $('#specializationMessage').addClass('d-none');
+                $('#specializationModal').modal('show');
+            }
+        }
+    });
+}
+
+function deleteSpecialization() {
+    var id = $('#deleteSpecializationId').val();
+    $.ajax({
+        url: '/icd/api/specialization/' + id,
+        method: 'DELETE',
+        success: function(response) {
+            if (response.success) {
+                $('#deleteSpecializationModal').modal('hide');
+                loadSpecializations();
+            } else {
+                alert('Error: ' + response.error);
+            }
+        }
+    });
+}
+
+function showSpecializationMessage(message, type) {
+    var msg = $('#specializationMessage');
+    msg.removeClass('d-none alert-success alert-danger').addClass('alert-' + type).text(message);
+}
+
+function loadMedicineConflicts() {
+    $.ajax({
+        url: '/icd/api/medicine-conflict',
+        method: 'GET',
+        success: function(response) {
+            var tbody = $('#medicine-conflict-table tbody');
+            tbody.empty();
+            if (response.success && response.data && response.data.length > 0) {
+                $.each(response.data, function(i, item) {
+                    var row = '<tr>';
+                    row += '<td>' + (i + 1) + '</td>';
+                    row += '<td>' + (item.department_name || 'N/A') + '</td>';
+                    row += '<td>' + (item.medicine1_name || 'N/A') + '</td>';
+                    row += '<td>' + (item.medicine2_name || 'N/A') + '</td>';
+                    row += '<td>' +
+                        '<button class="btn btn-sm btn-primary btn-edit-medicine-conflict" data-id="' + item.medconfid + '"><i class="bi bi-pencil"></i></button>' +
+                        '<button class="btn btn-sm btn-danger btn-delete-medicine-conflict" data-id="' + item.medconfid + '"><i class="bi bi-trash"></i></button>' +
+                        '</td>';
+                    row += '</tr>';
+                    tbody.append(row);
+                });
+            } else {
+                tbody.html('<tr><td colspan="5" class="text-center">No medicine conflicts found</td></tr>');
+            }
+        },
+        error: function(xhr) {
+            console.error('Error loading medicine conflicts:', xhr);
+            $('#medicine-conflict-table tbody').html('<tr><td colspan="5" class="text-center text-danger">Error loading medicine conflicts</td></tr>');
+        }
+    });
+}
+
+function loadMedicineConflictDropdowns() {
+    $.ajax({
+        url: '/rooms/api/departments',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var select = $('#medicineConflictDepartID');
+                select.empty();
+                select.append('<option value="">Select Department...</option>');
+                $.each(response.data, function(i, dept) {
+                    select.append('<option value="' + dept.departid + '">' + dept.name + '</option>');
+                });
+            }
+        }
+    });
+    $.ajax({
+        url: '/icd/api/medicines/dropdown',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var select1 = $('#medicineConflictIcdm1ID');
+                var select2 = $('#medicineConflictIcdm2ID');
+                select1.empty();
+                select2.empty();
+                select1.append('<option value="">Select Medicine...</option>');
+                select2.append('<option value="">Select Medicine...</option>');
+                $.each(response.data, function(i, med) {
+                    select1.append('<option value="' + med.id + '">' + med.name + '</option>');
+                    select2.append('<option value="' + med.id + '">' + med.name + '</option>');
+                });
+            }
+        }
+    });
+}
+
+function saveMedicineConflict() {
+    var id = $('#medicineConflictId').val();
+    var data = {
+        departID: $('#medicineConflictDepartID').val(),
+        icdm1ID: $('#medicineConflictIcdm1ID').val(),
+        icdm2ID: $('#medicineConflictIcdm2ID').val()
+    };
+    if (!data.departID) {
+        showMedicineConflictMessage('Please select a department', 'danger');
+        return;
+    }
+    if (!data.icdm1ID || !data.icdm2ID) {
+        showMedicineConflictMessage('Please select both medicines', 'danger');
+        return;
+    }
+    if (data.icdm1ID === data.icdm2ID) {
+        showMedicineConflictMessage('Cannot create conflict with the same medicine', 'danger');
+        return;
+    }
+    var url = '/icd/api/medicine-conflicts';
+    var method = 'POST';
+    if (id) {
+        url = '/icd/api/medicine-conflict/' + id;
+        method = 'PUT';
+    }
+    $.ajax({
+        url: url,
+        method: method,
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function(response) {
+            if (response.success) {
+                $('#medicineConflictModal').modal('hide');
+                loadMedicineConflicts();
+            } else {
+                showMedicineConflictMessage('Error: ' + response.error, 'danger');
+            }
+        },
+        error: function(xhr) {
+            try {
+                var response = JSON.parse(xhr.responseText);
+                showMedicineConflictMessage('Error: ' + response.error, 'danger');
+            } catch(e) {
+                showMedicineConflictMessage('Error: ' + xhr.statusText, 'danger');
+            }
+        }
+    });
+}
+
+function editMedicineConflict(id) {
+    $.ajax({
+        url: '/icd/api/medicine-conflict/' + id,
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var data = response.data;
+                $('#medicineConflictModalLabel').text('Edit Medicine Conflict');
+                $('#medicineConflictId').val(data.medconfid);
+                $('#medicineConflictDepartID').val(data.departid);
+                $('#medicineConflictIcdm1ID').val(data.icdm1id);
+                $('#medicineConflictIcdm2ID').val(data.icdm2id);
+                $('#medicineConflictMessage').addClass('d-none');
+                $('#medicineConflictModal').modal('show');
+            }
+        }
+    });
+}
+
+function deleteMedicineConflict() {
+    var id = $('#deleteMedicineConflictId').val();
+    $.ajax({
+        url: '/icd/api/medicine-conflict/' + id,
+        method: 'DELETE',
+        success: function(response) {
+            if (response.success) {
+                $('#deleteMedicineConflictModal').modal('hide');
+                loadMedicineConflicts();
+            } else {
+                alert('Error: ' + response.error);
+            }
+        }
+    });
+}
+
+function showMedicineConflictMessage(message, type) {
+    var msg = $('#medicineConflictMessage');
     msg.removeClass('d-none alert-success alert-danger').addClass('alert-' + type).text(message);
 }
 </script>

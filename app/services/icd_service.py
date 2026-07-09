@@ -272,3 +272,74 @@ def get_all_admissions_for_dropdown_service():
 
 def get_all_rooms_for_dropdown_service():
     return get_all_rooms_for_dropdown()
+
+
+def get_all_specializations_service():
+    return get_all_specializations()
+
+def get_specialization_by_id_service(specID):
+    return get_specialization_by_id(specID)
+
+def create_specialization_service(data):
+    if not data.get('name'):
+        raise ValueError("Specialization name is required")
+    return create_specialization(data)
+
+def update_specialization_service(specID, data):
+    if not data.get('name'):
+        raise ValueError("Specialization name is required")
+    existing = get_specialization_by_id(specID)
+    if not existing:
+        raise ValueError("Specialization not found")
+    return update_specialization(specID, data)
+
+def delete_specialization_service(specID):
+    existing = get_specialization_by_id(specID)
+    if not existing:
+        raise ValueError("Specialization not found")
+    return delete_specialization(specID)
+
+def assign_doctor_specialization_service(doctorID, specID):
+    return assign_doctor_specialization(doctorID, specID)
+
+def remove_doctor_specialization_service(doctorID, specID):
+    return remove_doctor_specialization(doctorID, specID)
+
+def assign_surgeon_specialization_service(surgeonID, specID):
+    return assign_surgeon_specialization(surgeonID, specID)
+
+def remove_surgeon_specialization_service(surgeonID, specID):
+    return remove_surgeon_specialization(surgeonID, specID)
+
+
+def get_all_medicine_conflicts_service():
+    return get_all_medicine_conflicts()
+
+def get_medicine_conflict_by_id_service(medconfID):
+    return get_medicine_conflict_by_id(medconfID)
+
+def create_medicine_conflict_service(data):
+    if not data.get('departID'):
+        raise ValueError("Department is required")
+    if not data.get('icdm1ID'):
+        raise ValueError("First medicine is required")
+    if not data.get('icdm2ID'):
+        raise ValueError("Second medicine is required")
+    if data.get('icdm1ID') == data.get('icdm2ID'):
+        raise ValueError("Cannot create conflict with the same medicine")
+    return create_medicine_conflict(data)
+
+def update_medicine_conflict_service(medconfID, data):
+    existing = get_medicine_conflict_by_id(medconfID)
+    if not existing:
+        raise ValueError("Medicine conflict not found")
+    return update_medicine_conflict(medconfID, data)
+
+def delete_medicine_conflict_service(medconfID):
+    existing = get_medicine_conflict_by_id(medconfID)
+    if not existing:
+        raise ValueError("Medicine conflict not found")
+    return delete_medicine_conflict(medconfID)
+
+def get_all_medicines_for_dropdown_service():
+    return get_all_medicines_for_dropdown()
