@@ -51,7 +51,9 @@ def patient_register():
                 'alley': request.form.get('alley'),
                 'houseCode': request.form.get('houseCode'),
                 'nationalCode': request.form.get('nationalCode'),
-                'password': request.form.get('password')
+                'password': request.form.get('password'),
+                'bloodType': request.form.get('bloodType'),
+                'smokingHistory': request.form.get('smokingHistory')
             }
             
             register_patient(data)

@@ -21,7 +21,6 @@ def create_shift_service(data):
     if not data.get('endTime'):
         raise ValueError("End time is required")
     
-    # Validate times
     if data['startTime'] >= data['endTime']:
         raise ValueError("Start time must be before end time")
     

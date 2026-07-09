@@ -53,8 +53,6 @@ def register_patient(data):
     if not patient_id:
         raise ValueError("Failed to create patient")
     
-    create_medical_record(patient_id)
-    
     return patient_id
 
 def logout_patient():

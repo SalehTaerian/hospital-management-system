@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}My Appointments{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body py-4">
+                <h2 class="mb-0"><i class="bi bi-calendar-check"></i> My Appointments</h2>
+                <p class="mb-0 mt-2">View all your appointments with patients</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> All Appointments</h5>
+            </div>
+            <div class="card-body">
+                <div id="appointmentsContainer">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p>Loading appointments...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    loadAppointments();
+});
+
+function loadAppointments() {
+    $.ajax({
+        url: '/doctor/api/appointments',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#appointmentsContainer');
+            container.empty();
+            
+            if (response.success && response.data && response.data.length > 0) {
+                var html = `
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Patient</th>
+                                    <th>National Code</th>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                $.each(response.data, function(i, apt) {
+                    var statusColors = {
+                        'Scheduled': 'info',
+                        'Completed': 'success',
+                        'Cancelled': 'danger',
+                        'No Show': 'warning',
+                        'Reserved': 'primary',
+                        'Not Reserved': 'secondary'
+                    };
+                    var color = statusColors[apt.status] || 'secondary';
+                    
+                    html += `
+                        <tr>
+                            <td>${i + 1}</td>
+                            <td><strong>${apt.patient_name}</strong></td>
+                            <td>${apt.nationalcode}</td>
+                            <td>${apt.date}</td>
+                            <td>${apt.time}</td>
+                            <td><span class="badge bg-${color}">${apt.status}</span></td>
+                            <td>
+                                <a href="/doctor/appointment/${apt.appoid}" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-eye"></i> View Details
+                                </a>
+                            </td>
+                        </tr>
+                    `;
+                });
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                container.html(html);
+            } else {
+                container.html(`
+                    <div class="text-center py-4">
+                        <i class="bi bi-calendar-x display-4 text-muted"></i>
+                        <p class="mt-2">No appointments found</p>
+                    </div>
+                `);
+            }
+        },
+        error: function() {
+            $('#appointmentsContainer').html('<div class="alert alert-danger">Error loading appointments</div>');
+        }
+    });
+}
+</script>
+{% endblock %}

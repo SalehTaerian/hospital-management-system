@@ -46,7 +46,7 @@ def get_patient_by_id(patient_id):
     )
 
 def create_patient(data):
-    query = """
+    patient_query = """
         INSERT INTO patient (
             firstName, lastName, nationalCode, password, gender,
             dateOfBirth, homeNumber, phoneNumber, province,
@@ -56,8 +56,8 @@ def create_patient(data):
         )
         RETURNING pID
     """
-    result = DatabaseConnection.execute_query(
-        query,
+    patient_result = DatabaseConnection.execute_query(
+        patient_query,
         (
             data.get('firstName'),
             data.get('lastName'),
@@ -76,7 +76,26 @@ def create_patient(data):
         fetch_one=True,
         commit=True
     )
-    return result[0] if result else None
+    
+    patient_id = patient_result[0] if patient_result else None
+    
+    if patient_id:
+        medical_query = """
+            INSERT INTO medicalRecord (pID, bloodType, smokingHistory)
+            VALUES (%s, %s, %s)
+            RETURNING mID
+        """
+        DatabaseConnection.execute_query(
+            medical_query,
+            (
+                patient_id,
+                data.get('bloodType'),
+                data.get('smokingHistory')
+            ),
+            commit=True
+        )
+    
+    return patient_id
 
 def check_patient_exists(national_code):
     query = "SELECT pID FROM patient WHERE nationalCode = %s"
