@@ -107,7 +107,8 @@
                     </div>
                     <h5 class="card-title">{{ doctor.firstname }} {{ doctor.lastname }}</h5>
                     <p class="card-text text-muted small">
-                        <i class="bi bi-stethoscope"></i> {{ doctor.specialization or 'General Practitioner' }}
+                        <!-- <i class="bi bi-stethoscope"></i> {{ doctor.specialization or 'General Practitioner' }} -->
+                        <i class="bi bi-stethoscope"></i> {{ 'General Practitioner' }}
                     </p>
                     <button class="btn btn-outline-primary btn-sm book-doctor-btn" 
                             data-doctor-id="{{ doctor.employeeid }}"

@@ -63,9 +63,9 @@ def api_get_patient(patient_id):
     if not staff_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
-    from app.services.staff_service import get_patient_by_id_service
+    from app.services.staff_service import get_patient_basic_info_service
     try:
-        patient = get_patient_by_id_service(patient_id)
+        patient = get_patient_basic_info_service(patient_id)
         return jsonify({'success': True, 'data': patient})
     except ValueError as e:
         return jsonify({'success': False, 'error': str(e)}), 404
@@ -73,7 +73,7 @@ def api_get_patient(patient_id):
 @staff_bp.route('/api/doctors', methods=['GET'])
 def api_get_doctors():
     if not staff_login_required():
-        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        return jsonify({'success ': False, 'error': 'Unauthorized'}), 401
     
     from app.services.staff_service import get_doctors_service
     doctors = get_doctors_service()

@@ -63,7 +63,6 @@ def get_doctors_list():
         SELECT 
             e.employeeID AS id,
             e.firstName || ' ' || e.lastName as name,
-            d.specialization
         FROM doctor AS d
         JOIN employee AS e ON d.employeeID = e.employeeID
         ORDER BY e.lastName
@@ -83,7 +82,6 @@ def get_today_appointments():
             a.status,
             p.firstName || ' ' || p.lastName as patient_name,
             e.firstName || ' ' || e.lastName as doctor_name,
-            d.specialization
         FROM appointment AS a
         JOIN medicalRecord AS mr ON a.mID = mr.mID
         JOIN patient AS p ON mr.pID = p.pID
@@ -163,7 +161,6 @@ def get_appointments_by_patient(patient_id):
             a.time,
             a.status,
             e.firstName || ' ' || e.lastName AS doctor_name,
-            d.specialization
         FROM appointment AS a
         JOIN doctor AS d ON a.doctorID = d.employeeID
         JOIN employee AS e ON d.employeeID = e.employeeID
@@ -183,9 +180,8 @@ def get_surgeons_list():
     query = """
         SELECT 
             e.employeeID AS id,
-            e.firstName || ' ' || e.lastName AS name,
-            s.surgicalField
-        FROM surgeon AS s
+            e.firstName || ' ' || e.lastName AS name
+            FROM surgeon AS s
         JOIN employee AS e ON s.employeeID = e.employeeID
         ORDER BY e.lastName
     """
@@ -317,7 +313,6 @@ def get_doctors_on_shift(shift_date):
             e.employeeID AS id,
             e.firstName || ' ' || e.lastName AS name,
             e.lastName,
-            d.specialization,
             s.startTime AS shift_start,
             s.endTime AS shift_end,
             s.shiftID
@@ -435,7 +430,7 @@ def get_doctors_with_availability(shift_date):
         result.append({
             'id': doctor['id'],
             'name': doctor['name'],
-            'specialization': doctor['specialization'],
+            # 'specialization': doctor['specialization'],
             'shift_start': doctor['shift_start'],
             'shift_end': doctor['shift_end'],
             'available_slots': slots,

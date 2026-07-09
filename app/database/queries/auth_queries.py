@@ -184,13 +184,13 @@ def create_employee(data):
 def assign_employee_role(employee_id, role):
     if role == 'doctor':
         query = """
-            INSERT INTO doctor (employeeID, medicalNumber, specialization, visitCost)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO doctor (employeeID, medicalNumber, visitCost)
+            VALUES (%s, %s, %s)
         """
-        params = (employee_id, '', '', 0)
+        params = (employee_id, '', 0)
     elif role == 'surgeon':
         query = """
-            INSERT INTO surgeon (employeeID, medicalNumber, surgicalField)
+            INSERT INTO surgeon (employeeID, medicalNumber)
             VALUES (%s, %s, %s)
         """
         params = (employee_id, '', '')
@@ -231,9 +231,10 @@ def get_doctors_with_specialization(search_term=None):
             e.employeeID,
             e.firstName,
             e.lastName,
-            d.specialization
+            s.name
         FROM employee e
-        JOIN doctor d ON e.employeeID = d.employeeID
+        JOIN doctor d ON e.employeeID = d.employeeID JOIN doctorSpecialization ds ON d.employeeID = ds.docID JOIN specializationFields s 
+        ON s.specID = ds.specID
     """
     params = []
     
@@ -241,7 +242,7 @@ def get_doctors_with_specialization(search_term=None):
         query += """
             WHERE e.firstName ILIKE %s 
             OR e.lastName ILIKE %s 
-            OR d.specialization ILIKE %s
+            OR s.name ILIKE %s
             LIMIT 9
         """
         search_pattern = f'%{search_term}%'
