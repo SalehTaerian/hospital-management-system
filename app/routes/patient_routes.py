@@ -16,9 +16,21 @@ def home():
     
     search_term = request.args.get('q', '').strip()
     doctors = get_doctors_service(search_term)
-    
+    docList =[]
+    docSet = set()
+    for doctor in doctors:
+        docSet.add(doctor["employeeid"])
+    for docID in docSet:
+        docDics = {"employeeid":docID , "firstname":"" , 'lastname':"" ,"name":[] }
+        for doctor in doctors:
+            if doctor["employeeid"]== docDics["employeeid"]:
+                docDics["firstname"] = doctor["firstname"]
+                docDics["lastname"] = doctor["lastname"]
+                docDics["name"].append(doctor["name"])
+        docList.append(docDics)
+                
     return render_template('patient/home.html', 
-                         doctors=doctors, 
+                         doctors=docList, 
                          user=session.get('user_name'))
 
 @patient_bp.route('/medical-records')
