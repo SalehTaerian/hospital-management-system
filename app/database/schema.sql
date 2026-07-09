@@ -93,20 +93,26 @@ CREATE TABLE surgeon (
 CREATE TABLE doctor (
     employeeID INTEGER NOT NULL PRIMARY KEY REFERENCES employee (employeeID) ON DELETE CASCADE,
     medicalNumber VARCHAR(20),
-    specialization VARCHAR(30),
     visitCost NUMERIC(15, 0)
 );
 
 
 CREATE TABLE specializationFields (
-    specID INTEGER NOT NULL REFERENCES doctor (employeeID) ON DELETE CASCADE,
+    specID SERIAL PRIMARY KEY,
     name VARCHAR(20)
+);
+CREATE TABLE doctorSpecialization (
+    docID INTEGER NOT NULL REFERENCES doctor (employeeID) ON DELETE CASCADE,
+    specID INTEGER NOT NULL REFERENCES specializationFields (specID) ON DELETE CASCADE,
+    PRIMARY KEY(docID , specID)
 );
 
 
-CREATE TABLE surgicalFields (
-    surgID INTEGER NOT NULL REFERENCES surgeon (employeeID) ON DELETE CASCADE,
-    name VARCHAR(20)
+CREATE TABLE surgeonSpecialization
+ (
+    surgeonID INTEGER NOT NULL REFERENCES surgeon (employeeID) ON DELETE CASCADE,
+    specID INTEGER NOT NULL REFERENCES specializationFields (specID) ON DELETE CASCADE,
+    PRIMARY KEY(surgeonID , specID)
 );
 
 

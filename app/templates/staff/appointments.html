@@ -217,7 +217,9 @@ function loadAvailableDoctors() {
             
             if (response.success && response.data && response.data.length > 0) {
                 $.each(response.data, function(i, doctor) {
-                    var label = doctor.name + ' (' + doctor.specialization + ') - ' + 
+                    // var label = doctor.name + ' (' + doctor.specialization + ') - ' + 
+                    //            doctor.available_count + ' slots available';
+                    var label = doctor.name + ' (' + ') - ' + 
                                doctor.available_count + ' slots available';
                     select.append('<option value="' + doctor.id + '">' + label + '</option>');
                 });

@@ -139,7 +139,9 @@ function loadSurgeons() {
             if (response.success) {
                 var select = $('#surgeonId');
                 $.each(response.data, function(i, surgeon) {
-                    select.append(`<option value="${surgeon.id}">${surgeon.name} - ${surgeon.surgicalfield}</option>`);
+                    // select.append(`<option value="${surgeon.id}">${surgeon.name} - ${surgeon.surgicalfield}</option>`);
+                    select.append(`<option value="${surgeon.id}">${surgeon.name}</option>`);
+
                 });
             }
         }

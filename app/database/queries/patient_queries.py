@@ -11,7 +11,7 @@ def get_patient_upcoming_appointments(patient_id):
             a.isOnlineReserved,
             a.createdAt,
             e.firstName || ' ' || e.lastName AS doctor_name,
-            d.specialization,
+            s.name,
             d.visitCost,
             i.invID,
             i.totalAmount,
@@ -21,6 +21,8 @@ def get_patient_upcoming_appointments(patient_id):
         FROM appointment a
         JOIN doctor d ON a.doctorID = d.employeeID
         JOIN employee e ON d.employeeID = e.employeeID
+        JOIN doctorSpecialization ds ON d.employeeID = ds.docID JOIN specializationFields s 
+        ON s.specID = ds.specID
         JOIN medicalRecord mr ON a.mID = mr.mID
         LEFT JOIN invoice i ON a.appoID = i.appoID
         WHERE mr.pID = %s
@@ -56,7 +58,7 @@ def get_patient_past_appointments(patient_id):
             a.status,
             a.isOnlineReserved,
             e.firstName || ' ' || e.lastName AS doctor_name,
-            d.specialization,
+            s.name,
             d.visitCost,
             i.invID,
             i.totalAmount,
@@ -66,6 +68,8 @@ def get_patient_past_appointments(patient_id):
         FROM appointment a
         JOIN doctor d ON a.doctorID = d.employeeID
         JOIN employee e ON d.employeeID = e.employeeID
+        JOIN doctorSpecialization ds ON d.employeeID = ds.docID JOIN specializationFields s 
+        ON s.specID = ds.specID
         JOIN medicalRecord mr ON a.mID = mr.mID
         LEFT JOIN invoice i ON a.appoID = i.appoID
         WHERE mr.pID = %s
@@ -129,11 +133,13 @@ def get_patient_billing(patient_id):
             a.date AS appointment_date,
             a.time AS appointment_time,
             e.firstName || ' ' || e.lastName AS doctor_name,
-            d.specialization
+            s.name
         FROM invoice i
         JOIN appointment a ON i.appoID = a.appoID
-        JOIN doctor d ON a.doctorID = d.employeeID
+        JOIN doctor d ON a.doctorID = d.employeeID 
         JOIN employee e ON d.employeeID = e.employeeID
+        JOIN doctorSpecialization ds ON d.employeeID = ds.docID JOIN specializationFields s 
+        ON s.specID = ds.specID
         WHERE i.pID = %s
         ORDER BY i.issueDate DESC
     """

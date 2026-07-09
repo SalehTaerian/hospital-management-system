@@ -18,14 +18,7 @@ def get_all_staff():
                 WHEN nur.employeeID IS NOT NULL THEN 'Nurse'
                 WHEN off.employeeID IS NOT NULL THEN 'Office Staff'
                 ELSE 'Unknown'
-            END as role,
-            CASE 
-                WHEN doc.employeeID IS NOT NULL THEN doc.specialization
-                WHEN surg.employeeID IS NOT NULL THEN surg.surgicalField
-                WHEN nur.employeeID IS NOT NULL THEN nur.grade
-                WHEN off.employeeID IS NOT NULL THEN off.role
-                ELSE NULL
-            END as role_detail
+            END as role
         FROM employee e
         LEFT JOIN department d ON e.departID = d.departID
         LEFT JOIN doctor doc ON e.employeeID = doc.employeeID
@@ -60,13 +53,6 @@ def get_staff_by_id(employee_id):
                 WHEN off.employeeID IS NOT NULL THEN 'Office Staff'
                 ELSE 'Unknown'
             END as role,
-            CASE 
-                WHEN doc.employeeID IS NOT NULL THEN doc.specialization
-                WHEN surg.employeeID IS NOT NULL THEN surg.surgicalField
-                WHEN nur.employeeID IS NOT NULL THEN nur.grade
-                WHEN off.employeeID IS NOT NULL THEN off.role
-                ELSE NULL
-            END as role_detail,
             doc.medicalNumber as doctor_medicalNumber,
             doc.visitCost,
             surg.medicalNumber as surgeon_medicalNumber,
@@ -155,13 +141,13 @@ def update_employee_role(employee_id, new_role):
     
     if new_role == 'doctor':
         query = """
-            INSERT INTO doctor (employeeID, medicalNumber, specialization, visitCost)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO doctor (employeeID, medicalNumber, visitCost)
+            VALUES (%s, %s, %s)
         """
         params = (employee_id, '', '', 0)
     elif new_role == 'surgeon':
         query = """
-            INSERT INTO surgeon (employeeID, medicalNumber, surgicalField)
+            INSERT INTO surgeon (employeeID, medicalNumber)
             VALUES (%s, %s, %s)
         """
         params = (employee_id, '', '')

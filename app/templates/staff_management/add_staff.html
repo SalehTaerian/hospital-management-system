@@ -53,7 +53,7 @@
                             <label class="form-label">Department</label>
                             <select class="form-control" id="department" required>
                                 <option value="">Select...</option>
-                                {% for dep in departments %}
+                                {% for dep in deps %}
                                 <option value="{{ dep.departid }}">{{ dep.name }}</option>
                                 {% endfor %}
                             </select>

@@ -65,7 +65,7 @@ def patient_register():
 @auth_bp.route('/patient-logout')
 def patient_logout():
     logout_patient()
-    return redirect('/patient-login')
+    return redirect('/auth/patient-login')
 
 @auth_bp.route('/staff-login', methods=['GET', 'POST'])
 def staff_login():
