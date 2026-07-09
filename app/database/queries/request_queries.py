@@ -10,7 +10,6 @@ def get_patient_requests(patient_id):
             r.status,
             r.isPatientConfirmed,
             r.cost,
-            r.createdAt,
             r.medID,
             r.testID,
             r.departID,
@@ -31,7 +30,6 @@ def get_patient_requests(patient_id):
         LEFT JOIN icdtCode icdt ON r.testID = icdt.icdtID
         JOIN medicalRecord mr ON r.mID = mr.mID
         WHERE mr.pID = %s
-        ORDER BY r.createdAt DESC
     """
     return DatabaseConnection.execute_query(
         query,
@@ -49,7 +47,6 @@ def get_patient_pending_requests(patient_id):
             r.status,
             r.isPatientConfirmed,
             r.cost,
-            r.createdAt,
             r.medID,
             r.testID,
             r.departID,
@@ -72,7 +69,6 @@ def get_patient_pending_requests(patient_id):
         WHERE mr.pID = %s
         AND r.isPatientConfirmed = FALSE
         AND r.status != 'Cancelled'
-        ORDER BY r.createdAt DESC
     """
     return DatabaseConnection.execute_query(
         query,
@@ -90,7 +86,6 @@ def get_doctor_requests(doctor_id):
             r.status,
             r.isPatientConfirmed,
             r.cost,
-            r.createdAt,
             r.medID,
             r.testID,
             r.departID,
@@ -111,7 +106,6 @@ def get_doctor_requests(doctor_id):
         LEFT JOIN icdmCode icdm ON r.medID = icdm.icdmID
         LEFT JOIN icdtCode icdt ON r.testID = icdt.icdtID
         WHERE r.doctorID = %s
-        ORDER BY r.createdAt DESC
     """
     return DatabaseConnection.execute_query(
         query,
@@ -129,7 +123,6 @@ def get_request_by_id(req_id):
             r.status,
             r.isPatientConfirmed,
             r.cost,
-            r.createdAt,
             r.mID,
             r.doctorID,
             r.medID,

@@ -106,10 +106,19 @@
                         <i class="bi bi-person"></i>
                     </div>
                     <h5 class="card-title">{{ doctor.firstname }} {{ doctor.lastname }}</h5>
-                    <p class="card-text text-muted small">
-                        <!-- <i class="bi bi-stethoscope"></i> {{ doctor.specialization or 'General Practitioner' }} -->
+                    <!-- <p class="card-text text-muted small">
+                        <i class="bi bi-stethoscope"></i> {{ doctor.specialization or 'General Practitioner' }}
                         <i class="bi bi-stethoscope"></i> {{ 'General Practitioner' }}
-                    </p>
+                    </p> -->
+                    <p><b>specialization :</b></p>
+                    {%for name in doctor.name%}
+                        <!-- <i class="bi bi-stethoscope"></i> {{ doctor.specialization or 'General Practitioner' }} -->
+                       | <i class="bi bi-stethoscope">{{name}} | </i> 
+                    {%endfor%}
+                    <br>
+                    <br>
+                    <br>
+                    <br>
                     <button class="btn btn-outline-primary btn-sm book-doctor-btn" 
                             data-doctor-id="{{ doctor.employeeid }}"
                             data-doctor-name="{{ doctor.firstname }} {{ doctor.lastname }}">

@@ -252,7 +252,7 @@ CREATE TABLE equipment (
     description TEXT
 );
 
-CREATE TABLE equipInfo (
+CREATE TABLE equipInfo (a
     eiID SERIAL PRIMARY KEY,
     equipID INTEGER NOT NULL REFERENCES equipment (equipID) ON DELETE CASCADE,
     roomID INTEGER NOT NULL REFERENCES room (roomID) ON DELETE CASCADE,
