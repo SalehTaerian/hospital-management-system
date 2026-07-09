@@ -151,6 +151,12 @@
                             <i class="bi bi-shield-check"></i> Insurance
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'billing.patient_billing' %}active{% endif %}"
+                            href="{{ url_for('billing.patient_billing') }}">
+                            <i class="bi bi-receipt"></i> Billing
+                        </a>
+                    </li>
                     {% endif %}
                     {% elif session.get('user_role') in ['doctor', 'surgeon', 'nurse', 'officeStaff'] %}
                     <li class="nav-item">
@@ -185,6 +191,12 @@
                     </li>
 
                     {% if session.get('user_role') == 'officeStaff' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'billing.staff_billing' %}active{% endif %}"
+                            href="{{ url_for('billing.staff_billing') }}">
+                            <i class="bi bi-receipt"></i> Billing
+                        </a>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'room.index' %}active{% endif %}"
                             href="{{ url_for('room.index') }}">

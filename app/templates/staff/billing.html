@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}Billing Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body py-4">
+                <h2 class="mb-0"><i class="bi bi-receipt"></i> Billing Management</h2>
+                <p class="mb-0 mt-2">Manage all patient invoices</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> All Invoices</h5>
+            </div>
+            <div class="card-body">
+                <div id="invoicesContainer">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p>Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Invoice Detail Modal -->
+<div class="modal fade" id="invoiceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Invoice Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="invoiceModalBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p>Loading...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" id="markPaidBtn" style="display:none;">
+                    <i class="bi bi-check-circle"></i> Mark as Paid
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var currentInvoiceId = null;
+
+$(document).ready(function() {
+    loadInvoices();
+});
+
+function loadInvoices() {
+    $.ajax({
+        url: '/billing/api/invoices/all',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#invoicesContainer');
+            container.empty();
+            
+            if (response.success && response.data && response.data.length > 0) {
+                var html = `
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Patient</th>
+                                    <th>National Code</th>
+                                    <th>Date</th>
+                                    <th>Items</th>
+                                    <th>Total</th>
+                                    <th>Patient Share</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                $.each(response.data, function(i, inv) {
+                    var statusBadge = inv.ispaid ? 
+                        '<span class="badge bg-success">Paid</span>' : 
+                        '<span class="badge bg-warning">Unpaid</span>';
+                    
+                    html += `
+                        <tr>
+                            <td><strong>#${inv.invid}</strong></td>
+                            <td>${inv.patient_name}</td>
+                            <td>${inv.nationalcode}</td>
+                            <td>${inv.issuedate}</td>
+                            <td>${inv.item_count || 0}</td>
+                            <td>$${parseFloat(inv.totalamount || 0).toFixed(2)}</td>
+                            <td>$${parseFloat(inv.patientshare || 0).toFixed(2)}</td>
+                            <td>${statusBadge}</td>
+                            <td>
+                                <button class="btn btn-sm btn-info btn-view-invoice" data-id="${inv.invid}">
+                                    <i class="bi bi-eye"></i> View
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                container.html(html);
+                
+                $('.btn-view-invoice').on('click', function() {
+                    var id = $(this).data('id');
+                    viewInvoice(id);
+                });
+            } else {
+                container.html(`
+                    <div class="text-center py-4">
+                        <i class="bi bi-receipt display-4 text-muted"></i>
+                        <p class="mt-2">No invoices found</p>
+                    </div>
+                `);
+            }
+        },
+        error: function() {
+            $('#invoicesContainer').html('<div class="alert alert-danger">Error loading invoices</div>');
+        }
+    });
+}
+
+function viewInvoice(invoiceId) {
+    currentInvoiceId = invoiceId;
+    $('#invoiceModalBody').html(`
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p>Loading invoice details...</p>
+        </div>
+    `);
+    $('#markPaidBtn').hide();
+    $('#invoiceModal').modal('show');
+    
+    $.ajax({
+        url: '/billing/api/invoices/' + invoiceId,
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var inv = response.data;
+                var statusBadge = inv.isPaid ? 
+                    '<span class="badge bg-success">Paid</span>' : 
+                    '<span class="badge bg-warning">Unpaid</span>';
+                
+                if (!inv.isPaid) {
+                    $('#markPaidBtn').show();
+                }
+                
+                var html = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Invoice Information</h6>
+                            <table class="table table-sm">
+                                <tr><td><strong>Invoice #:</strong></td><td>${inv.invID}</td></tr>
+                                <tr><td><strong>Date:</strong></td><td>${inv.issueDate}</td></tr>
+                                <tr><td><strong>Patient:</strong></td><td>${inv.patient_name}</td></tr>
+                                <tr><td><strong>National Code:</strong></td><td>${inv.nationalCode}</td></tr>
+                                <tr><td><strong>Status:</strong></td><td>${statusBadge}</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Amount Summary</h6>
+                            <table class="table table-sm">
+                                <tr><td><strong>Total Amount:</strong></td><td>$${parseFloat(inv.totalAmount || 0).toFixed(2)}</td></tr>
+                                <tr><td><strong>Insurance Share:</strong></td><td>$${parseFloat(inv.insuranceShare || 0).toFixed(2)}</td></tr>
+                                <tr><td><strong>Patient Share:</strong></td><td>$${parseFloat(inv.patientShare || 0).toFixed(2)}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                    <hr>
+                    <h6>Items</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Item Type</th>
+                                    <th>Description</th>
+                                    <th>Reference</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                if (inv.items && inv.items.length > 0) {
+                    $.each(inv.items, function(i, item) {
+                        html += `
+                            <tr>
+                                <td><span class="badge bg-info">${item.itemType}</span></td>
+                                <td>${item.description || ''}</td>
+                                <td>${item.reference || '-'}</td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    html += `<tr><td colspan="3" class="text-center">No items</td></tr>`;
+                }
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                $('#invoiceModalBody').html(html);
+            } else {
+                $('#invoiceModalBody').html('<div class="alert alert-danger">' + response.error + '</div>');
+            }
+        },
+        error: function() {
+            $('#invoiceModalBody').html('<div class="alert alert-danger">Error loading invoice details</div>');
+        }
+    });
+}
+
+$('#markPaidBtn').on('click', function() {
+    if (!currentInvoiceId) return;
+    
+    if (!confirm('Mark this invoice as paid?')) return;
+    
+    $.ajax({
+        url: '/billing/api/invoices/' + currentInvoiceId + '/pay',
+        method: 'POST',
+        success: function(response) {
+            if (response.success) {
+                alert('Invoice marked as paid successfully!');
+                $('#invoiceModal').modal('hide');
+                loadInvoices();
+            } else {
+                alert('Error: ' + response.error);
+            }
+        },
+        error: function() {
+            alert('Error marking invoice as paid');
+        }
+    });
+});
+</script>
+{% endblock %}
