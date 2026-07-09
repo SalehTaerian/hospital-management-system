@@ -81,7 +81,7 @@ def get_today_appointments():
             a.time,
             a.status,
             p.firstName || ' ' || p.lastName as patient_name,
-            e.firstName || ' ' || e.lastName as doctor_name,
+            e.firstName || ' ' || e.lastName as doctor_name
         FROM appointment AS a
         JOIN medicalRecord AS mr ON a.mID = mr.mID
         JOIN patient AS p ON mr.pID = p.pID

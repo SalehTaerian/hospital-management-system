@@ -10,6 +10,7 @@ def get_all_admissions():
             p.firstName || ' ' || p.lastName as patient_name,
             p.nationalCode,
             e.firstName || ' ' || e.lastName as doctor_name,
+            doc.visitCost,
             b.bedID,
             b.cost as bed_cost,
             bi.startTimestamp as admission_date,
@@ -25,7 +26,7 @@ def get_all_admissions():
         LEFT JOIN bed b ON bi.bedID = b.bedID
         LEFT JOIN room r ON bi.roomID = r.roomID
         LEFT JOIN department dep ON r.departID = dep.departID
-        ORDER BY b.bedID DESC
+        ORDER BY a.admID DESC
     """
     return DatabaseConnection.execute_query(
         query,
@@ -45,6 +46,7 @@ def get_admission_by_id(admID):
             p.firstName || ' ' || p.lastName as patient_name,
             p.nationalCode,
             e.firstName || ' ' || e.lastName as doctor_name,
+            doc.visitCost,
             b.bedID,
             b.cost as bed_cost,
             bi.biID as bed_info_id,
@@ -59,7 +61,7 @@ def get_admission_by_id(admID):
         JOIN patient p ON mr.pID = p.pID
         JOIN doctor doc ON a.doctorID = doc.employeeID
         JOIN employee e ON doc.employeeID = e.employeeID
-        LEFT JOIN bedInfo bi ON a.admID = bi.asgAdmID AND bi.status = 'Occupied'
+        LEFT JOIN bedInfo bi ON a.admID = bi.asgAdmID
         LEFT JOIN bed b ON bi.bedID = b.bedID
         LEFT JOIN room r ON bi.roomID = r.roomID
         LEFT JOIN department dep ON r.departID = dep.departID
@@ -174,6 +176,14 @@ def discharge_patient(admID):
 
 def get_available_beds():
     query = """
+        WITH latest_bedinfo AS (
+            SELECT DISTINCT ON (bedID) 
+                bedID, 
+                roomID, 
+                status
+            FROM bedInfo
+            ORDER BY bedID, startTimestamp DESC
+        )
         SELECT 
             b.bedID,
             b.cost,
@@ -183,14 +193,9 @@ def get_available_beds():
             dep.name as department_name
         FROM bed b
         CROSS JOIN room r
+        LEFT JOIN latest_bedinfo lbi ON b.bedID = lbi.bedID AND r.roomID = lbi.roomID
         LEFT JOIN department dep ON r.departID = dep.departID
-        WHERE b.bedID NOT IN (
-            SELECT bedID FROM bedInfo WHERE status = 'Occupied'
-        )
-        AND NOT EXISTS (
-            SELECT 1 FROM bedInfo bi2 
-            WHERE bi2.bedID = b.bedID AND bi2.status = 'Occupied'
-        )
+        WHERE (lbi.status IS NULL OR lbi.status != 'Occupied')
         ORDER BY r.name, b.bedID
     """
     return DatabaseConnection.execute_query(
@@ -201,17 +206,20 @@ def get_available_beds():
 
 def get_available_beds_by_room(roomID):
     query = """
+        WITH latest_bedinfo AS (
+            SELECT DISTINCT ON (bedID) 
+                bedID, 
+                roomID, 
+                status
+            FROM bedInfo
+            ORDER BY bedID, startTimestamp DESC
+        )
         SELECT 
             b.bedID,
             b.cost
         FROM bed b
-        WHERE b.bedID NOT IN (
-            SELECT bedID FROM bedInfo WHERE status = 'Occupied' AND roomID = %s
-        )
-        AND NOT EXISTS (
-            SELECT 1 FROM bedInfo bi2 
-            WHERE bi2.bedID = b.bedID AND bi2.status = 'Occupied'
-        )
+        LEFT JOIN latest_bedinfo lbi ON b.bedID = lbi.bedID AND lbi.roomID = %s
+        WHERE (lbi.status IS NULL OR lbi.status != 'Occupied')
         ORDER BY b.bedID
     """
     return DatabaseConnection.execute_query(
@@ -226,9 +234,9 @@ def get_all_doctors():
         SELECT 
             e.employeeID as id,
             e.firstName || ' ' || e.lastName as name,
-            d.specialization
-        FROM doctor d
-        JOIN employee e ON d.employeeID = e.employeeID
+            doc.visitCost
+        FROM doctor doc
+        JOIN employee e ON doc.employeeID = e.employeeID
         ORDER BY e.lastName
     """
     return DatabaseConnection.execute_query(
@@ -255,17 +263,20 @@ def get_all_rooms():
 
 def get_beds_by_room(roomID):
     query = """
+        WITH latest_bedinfo AS (
+            SELECT DISTINCT ON (bedID) 
+                bedID, 
+                roomID, 
+                status
+            FROM bedInfo
+            ORDER BY bedID, startTimestamp DESC
+        )
         SELECT 
             b.bedID,
-            b.cost
+            b.cost,
+            COALESCE(lbi.status, 'Available') as status
         FROM bed b
-        WHERE b.bedID NOT IN (
-            SELECT bedID FROM bedInfo WHERE status = 'Occupied' AND roomID = %s
-        )
-        AND NOT EXISTS (
-            SELECT 1 FROM bedInfo bi2 
-            WHERE bi2.bedID = b.bedID AND bi2.status = 'Occupied'
-        )
+        LEFT JOIN latest_bedinfo lbi ON b.bedID = lbi.bedID AND lbi.roomID = %s
         ORDER BY b.bedID
     """
     return DatabaseConnection.execute_query(
@@ -276,6 +287,23 @@ def get_beds_by_room(roomID):
     )
 
 def transfer_patient(admID, new_bedID, new_roomID, cost):
+    current_bed = """
+        SELECT biID, bedID, roomID 
+        FROM bedInfo 
+        WHERE asgAdmID = %s AND status = 'Occupied'
+        ORDER BY startTimestamp DESC
+        LIMIT 1
+    """
+    current = DatabaseConnection.execute_query(
+        current_bed,
+        (admID,),
+        fetch_one=True,
+        fetch_dict=True
+    )
+    
+    if not current:
+        raise ValueError("No active bed assignment found for this admission")
+    
     query = """
         INSERT INTO transfer (admID, destBedID, cost)
         VALUES (%s, %s, %s)
@@ -292,11 +320,11 @@ def transfer_patient(admID, new_bedID, new_roomID, cost):
         update_bed_info = """
             UPDATE bedInfo
             SET status = 'Available'
-            WHERE asgAdmID = %s AND status = 'Occupied'
+            WHERE biID = %s
         """
         DatabaseConnection.execute_query(
             update_bed_info,
-            (admID,),
+            (current['biid'],),
             commit=True
         )
         
@@ -315,24 +343,52 @@ def transfer_patient(admID, new_bedID, new_roomID, cost):
 
 def get_transfer_history(admID):
     query = """
+        WITH bed_history AS (
+            SELECT 
+                bi.biID,
+                bi.bedID,
+                bi.roomID,
+                bi.startTimestamp,
+                bi.status,
+                ROW_NUMBER() OVER (ORDER BY bi.startTimestamp) as rn
+            FROM bedInfo bi
+            WHERE bi.asgAdmID = %s
+            ORDER BY bi.startTimestamp
+        ),
+        transfer_data AS (
+            SELECT 
+                t.transferID,
+                t.admID,
+                t.destBedID,
+                t.transferedAt,
+                t.cost,
+                ROW_NUMBER() OVER (PARTITION BY t.admID ORDER BY t.transferedAt) as trn
+            FROM transfer t
+            WHERE t.admID = %s
+        )
         SELECT 
-            t.transferID,
-            t.transferedAt,
-            t.cost,
-            b.bedID as from_bed,
-            b2.bedID as to_bed,
-            r.name as from_room
-        FROM transfer t
-        JOIN bedInfo bi ON t.admID = bi.asgAdmID
-        JOIN bed b ON bi.bedID = b.bedID
-        JOIN room r ON bi.roomID = r.roomID
-        JOIN bed b2 ON t.destBedID = b2.bedID
-        WHERE t.admID = %s
-        ORDER BY t.transferedAt DESC
+            bh_prev.bedID as from_bed_id,
+            bh_curr.bedID as to_bed_id,
+            r_prev.name as from_room,
+            r_curr.name as to_room,
+            dep_prev.name as from_department,
+            dep_curr.name as to_department,
+            bh_curr.startTimestamp as transferedAt,
+            COALESCE(td.cost, 0) as cost,
+            COALESCE(td.transferID, 0) as transferID
+        FROM bed_history bh_curr
+        JOIN bed_history bh_prev ON bh_prev.rn = bh_curr.rn - 1
+        JOIN room r_prev ON bh_prev.roomID = r_prev.roomID
+        JOIN room r_curr ON bh_curr.roomID = r_curr.roomID
+        LEFT JOIN department dep_prev ON r_prev.departID = dep_prev.departID
+        LEFT JOIN department dep_curr ON r_curr.departID = dep_curr.departID
+        LEFT JOIN transfer_data td ON td.trn = bh_curr.rn - 1
+        WHERE bh_curr.rn > 1
+        ORDER BY bh_curr.startTimestamp DESC
     """
     return DatabaseConnection.execute_query(
         query,
-        (admID,),
+        (admID, admID),
         fetch_all=True,
         fetch_dict=True
     )

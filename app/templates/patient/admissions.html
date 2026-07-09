@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}My Admissions{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body py-4">
+                <h2 class="mb-0"><i class="bi bi-hospital"></i> My Admissions</h2>
+                <p class="mb-0 mt-2">View your complete admission history</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> All Admissions</h5>
+            </div>
+            <div class="card-body">
+                <div id="admissionsContainer">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p>Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    loadAdmissions();
+});
+
+function loadAdmissions() {
+    $.ajax({
+        url: '/patient/api/admissions',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#admissionsContainer');
+            container.empty();
+            
+            if (response.success && response.data && response.data.length > 0) {
+                var html = '';
+                $.each(response.data, function(i, adm) {
+                    var statusBadge = adm.bed_status === 'Occupied' ? 
+                        '<span class="badge bg-success">Active</span>' : 
+                        '<span class="badge bg-secondary">Discharged</span>';
+                    
+                    html += `
+                        <div class="card mb-3 shadow-sm">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <h5>Admission #${adm.admid}</h5>
+                                        <p class="mb-1">
+                                            <strong>Doctor:</strong> ${adm.doctor_name || 'N/A'}
+                                        </p>
+                                        <p class="mb-1">
+                                            <strong>Room:</strong> ${adm.room_name || 'N/A'}
+                                        </p>
+                                        <p class="mb-1">
+                                            <strong>Bed:</strong> ${adm.bedid ? '#' + adm.bedid : 'N/A'}
+                                        </p>
+                                        <p class="mb-1">
+                                            <strong>Department:</strong> ${adm.department_name || 'N/A'}
+                                        </p>
+                                        <p class="mb-1">
+                                            <strong>Admission Date:</strong> ${adm.admission_date || 'N/A'}
+                                        </p>
+                                        <p class="mb-1">
+                                            <strong>Status:</strong> ${statusBadge}
+                                        </p>
+                                    </div>
+                                    <div class="col-md-4 text-end">
+                                        <p class="mb-1">
+                                            <strong>Cost:</strong> $${parseFloat(adm.cost || 0).toFixed(2)}
+                                        </p>
+                                        <a href="/patient/admissions/${adm.admid}" class="btn btn-primary btn-sm mt-2">
+                                            <i class="bi bi-eye"></i> View Details
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.html(html);
+            } else {
+                container.html(`
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox display-4 text-muted"></i>
+                        <p class="mt-2">No admissions found</p>
+                    </div>
+                `);
+            }
+        },
+        error: function() {
+            $('#admissionsContainer').html('<div class="alert alert-danger">Error loading admissions</div>');
+        }
+    });
+}
+</script>
+{% endblock %}

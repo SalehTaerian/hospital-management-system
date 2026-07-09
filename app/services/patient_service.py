@@ -14,3 +14,12 @@ def cancel_appointment_service(appointment_id, patient_id):
 
 def get_patient_billing_service(patient_id):
     return get_patient_billing(patient_id)
+
+def get_patient_admissions_service(patient_id):
+    return get_patient_admissions(patient_id)
+
+def get_patient_admission_by_id_service(admID, patient_id):
+    admission = get_patient_admission_by_id(admID, patient_id)
+    if not admission:
+        raise ValueError("Admission not found or you don't have permission to view it")
+    return admission

@@ -85,7 +85,14 @@
                             <i class="bi bi-clipboard"></i> Requests
                         </a>
                     </li>
-
+                    {% if session.get('user_role') == 'patient' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'patient.patient_admissions' %}active{% endif %}"
+                            href="{{ url_for('patient.patient_admissions') }}">
+                            <i class="bi bi-hospital"></i> Admissions
+                        </a>
+                    </li>
+                    {% endif %}
                     {% elif session.get('user_role') in ['doctor', 'surgeon', 'nurse', 'officeStaff'] %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'staff.dashboard' %}active{% endif %}"

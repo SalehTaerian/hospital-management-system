@@ -49,7 +49,7 @@
             </div>
             <div class="modal-body">
                 <form id="transferForm">
-                    <input type="hidden" id="transferAdmId">
+                    <input type="hidden" id="transferAdmId" value="{{ admID }}">
                     
                     <div class="mb-3">
                         <label class="form-label">Room</label>
@@ -85,19 +85,22 @@
 {% block scripts %}
 <script>
 $(document).ready(function() {
-    loadAdmissionDetail();
+    // Get admID from hidden input
+    var admId = parseInt($('#transferAdmId').val()) || 0;
+    
+    loadAdmissionDetail(admId);
     loadRoomsForTransfer();
     
     $('.btn-transfer').on('click', function() {
-        var admId = $(this).data('adm-id');
-        $('#transferAdmId').val(admId);
+        var id = $(this).data('adm-id');
+        $('#transferAdmId').val(id);
         $('#transferModal').modal('show');
     });
     
     $('.btn-discharge').on('click', function() {
-        var admId = $(this).data('adm-id');
+        var id = $(this).data('adm-id');
         if (confirm('Are you sure you want to discharge this patient?')) {
-            dischargePatient(admId);
+            dischargePatient(id);
         }
     });
     
@@ -115,8 +118,7 @@ $(document).ready(function() {
     });
 });
 
-function loadAdmissionDetail() {
-    var admId = {{ admID }};
+function loadAdmissionDetail(admId) {
     $.ajax({
         url: '/admissions/api/admissions/' + admId,
         method: 'GET',
@@ -137,8 +139,8 @@ function loadAdmissionDetail() {
                 html += '<table class="table table-sm">';
                 html += '<tr><td><strong>Name:</strong></td><td>' + adm.patient_name + '</td></tr>';
                 html += '<tr><td><strong>National Code:</strong></td><td>' + adm.nationalcode + '</td></tr>';
-                html += '<tr><td><strong>Doctor:</strong></td><td>' + adm.doctor_name + ' (' + adm.specialization + ')</td></tr>';
-                html += '<tr><td><strong>Admission Date:</strong></td><td>' + (adm.admission_date || adm.createdat) + '</td></tr>';
+                html += '<tr><td><strong>Doctor:</strong></td><td>' + adm.doctor_name + '</td></tr>';
+                html += '<tr><td><strong>Admission Date:</strong></td><td>' + (adm.admission_date || 'N/A') + '</td></tr>';
                 html += '</table>';
                 html += '</div>';
                 html += '<div class="col-md-6">';
@@ -154,13 +156,16 @@ function loadAdmissionDetail() {
                 html += '</div>';
                 
                 // Transfer History
-                if (transfers.length > 0) {
+                if (transfers && transfers.length > 0) {
                     html += '<hr><h5>Transfer History</h5>';
                     html += '<div class="table-responsive"><table class="table table-sm table-striped">';
-                    html += '<thead><tr><th>From Room</th><th>To Room</th><th>Date</th><th>Cost</th></tr></thead><tbody>';
+                    html += '<thead><tr><th>#</th><th>From Bed</th><th>From Room</th><th>To Bed</th><th>To Room</th><th>Date</th><th>Cost</th></tr></thead><tbody>';
                     $.each(transfers, function(i, t) {
                         html += '<tr>';
+                        html += '<td>' + (i + 1) + '</td>';
+                        html += '<td><span class="badge bg-warning">Bed #' + t.from_bed_id + '</span></td>';
                         html += '<td>' + (t.from_room || '-') + '</td>';
+                        html += '<td><span class="badge bg-success">Bed #' + t.to_bed_id + '</span></td>';
                         html += '<td>' + (t.to_room || '-') + '</td>';
                         html += '<td>' + t.transferedat + '</td>';
                         html += '<td>$' + parseFloat(t.cost || 0).toFixed(2) + '</td>';
@@ -222,7 +227,7 @@ function dischargePatient(admId) {
         success: function(response) {
             if (response.success) {
                 alert('✅ Patient discharged successfully!');
-                loadAdmissionDetail();
+                loadAdmissionDetail(admId);
             } else {
                 alert('❌ Error: ' + response.error);
             }
@@ -256,7 +261,7 @@ function transferPatient() {
             if (response.success) {
                 $('#transferModal').modal('hide');
                 alert('✅ Patient transferred successfully!');
-                loadAdmissionDetail();
+                loadAdmissionDetail(admId);
             } else {
                 showTransferMessage('❌ Error: ' + response.error, 'danger');
             }
@@ -274,7 +279,9 @@ function transferPatient() {
 
 function showTransferMessage(message, type) {
     var msg = $('#transferMessage');
-    msg.removeClass('d-none alert-success alert-danger').addClass('alert-' + type).text(message);
+    msg.removeClass('d-none alert-success alert-danger')
+       .addClass('alert-' + type)
+       .text(message);
 }
 </script>
 {% endblock %}

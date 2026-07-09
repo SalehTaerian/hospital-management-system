@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Admission Details{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body py-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0"><i class="bi bi-hospital"></i> Admission Details</h2>
+                    </div>
+                    <a href="{{ url_for('patient.patient_admissions') }}" class="btn btn-light">
+                        <i class="bi bi-arrow-left"></i> Back
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow" id="detailContainer">
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p>Loading...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    loadAdmissionDetail();
+});
+
+function loadAdmissionDetail() {
+    var admId = {{ admID }};
+    $.ajax({
+        url: '/patient/api/admissions/' + admId,
+        method: 'GET',
+        success: function(response) {
+            var container = $('#detailContainer');
+            if (response.success) {
+                var adm = response.data;
+                
+                var statusBadge = adm.bed_status === 'Occupied' ? 
+                    '<span class="badge bg-success">Active</span>' : 
+                    '<span class="badge bg-secondary">Discharged</span>';
+                
+                var html = '<div class="card-body">';
+                html += '<div class="row">';
+                html += '<div class="col-md-6">';
+                html += '<h5>Patient Information</h5>';
+                html += '<table class="table table-sm">';
+                html += '<tr><td><strong>Admission ID:</strong></td><td>#' + adm.admid + '</td></tr>';
+                html += '<tr><td><strong>Doctor:</strong></td><td>' + (adm.doctor_name || 'N/A') + '</td></tr>';
+                html += '<tr><td><strong>Admission Date:</strong></td><td>' + (adm.admission_date || 'N/A') + '</td></tr>';
+                html += '</table>';
+                html += '</div>';
+                html += '<div class="col-md-6">';
+                html += '<h5>Bed Information</h5>';
+                html += '<table class="table table-sm">';
+                html += '<tr><td><strong>Bed:</strong></td><td>' + (adm.bedid ? '#' + adm.bedid : 'N/A') + '</td></tr>';
+                html += '<tr><td><strong>Room:</strong></td><td>' + (adm.room_name || 'N/A') + '</td></tr>';
+                html += '<tr><td><strong>Department:</strong></td><td>' + (adm.department_name || 'N/A') + '</td></tr>';
+                html += '<tr><td><strong>Status:</strong></td><td>' + statusBadge + '</td></tr>';
+                html += '<tr><td><strong>Cost:</strong></td><td>$' + parseFloat(adm.cost || 0).toFixed(2) + '</td></tr>';
+                html += '</table>';
+                html += '</div>';
+                html += '</div>';
+                html += '</div>';
+                
+                container.html(html);
+            } else {
+                container.html('<div class="card-body"><div class="alert alert-danger">' + response.error + '</div></div>');
+            }
+        },
+        error: function() {
+            $('#detailContainer').html('<div class="card-body"><div class="alert alert-danger">Error loading admission details</div></div>');
+        }
+    });
+}
+</script>
+{% endblock %}

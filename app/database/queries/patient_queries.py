@@ -159,3 +159,68 @@ def get_patient_billing(patient_id):
             row['issuedate'] = str(row['issuedate'])
     
     return results
+
+def get_patient_admissions(patient_id):
+    query = """
+        SELECT 
+            a.admID,
+            a.cost,
+            a.mID,
+            a.doctorID,
+            e.firstName || ' ' || e.lastName as doctor_name,
+            doc.visitCost,
+            b.bedID,
+            b.cost as bed_cost,
+            bi.startTimestamp as admission_date,
+            bi.status as bed_status,
+            r.name as room_name,
+            dep.name as department_name
+        FROM admission a
+        JOIN medicalRecord mr ON a.mID = mr.mID
+        JOIN doctor doc ON a.doctorID = doc.employeeID
+        JOIN employee e ON doc.employeeID = e.employeeID
+        LEFT JOIN bedInfo bi ON a.admID = bi.asgAdmID AND bi.status = 'Occupied'
+        LEFT JOIN bed b ON bi.bedID = b.bedID
+        LEFT JOIN room r ON bi.roomID = r.roomID
+        LEFT JOIN department dep ON r.departID = dep.departID
+        WHERE mr.pID = %s
+        ORDER BY a.admID DESC
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        (patient_id,),
+        fetch_all=True,
+        fetch_dict=True
+    )
+
+def get_patient_admission_by_id(admID, patient_id):
+    query = """
+        SELECT 
+            a.admID,
+            a.cost,
+            a.mID,
+            a.doctorID,
+            e.firstName || ' ' || e.lastName as doctor_name,
+            doc.visitCost,
+            b.bedID,
+            b.cost as bed_cost,
+            bi.startTimestamp as admission_date,
+            bi.status as bed_status,
+            r.name as room_name,
+            dep.name as department_name
+        FROM admission a
+        JOIN medicalRecord mr ON a.mID = mr.mID
+        JOIN doctor doc ON a.doctorID = doc.employeeID
+        JOIN employee e ON doc.employeeID = e.employeeID
+        LEFT JOIN bedInfo bi ON a.admID = bi.asgAdmID
+        LEFT JOIN bed b ON bi.bedID = b.bedID
+        LEFT JOIN room r ON bi.roomID = r.roomID
+        LEFT JOIN department dep ON r.departID = dep.departID
+        WHERE a.admID = %s AND mr.pID = %s
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        (admID, patient_id),
+        fetch_one=True,
+        fetch_dict=True
+    )

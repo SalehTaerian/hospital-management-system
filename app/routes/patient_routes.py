@@ -86,3 +86,38 @@ def api_get_billing():
     patient_id = session.get('user_id')
     billing = get_patient_billing_service(patient_id)
     return jsonify({'success': True, 'data': billing})
+
+@patient_bp.route('/admissions')
+def patient_admissions():
+    if not patient_login_required():
+        return redirect('/patient-login')
+    
+    return render_template('patient/admissions.html')
+
+@patient_bp.route('/admissions/<int:admID>')
+def patient_admission_detail(admID):
+    if not patient_login_required():
+        return redirect('/patient-login')
+    
+    return render_template('patient/admission_detail.html', admID=admID)
+
+@patient_bp.route('/api/admissions', methods=['GET'])
+def api_get_patient_admissions():
+    if not patient_login_required():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    
+    patient_id = session.get('user_id')
+    admissions = get_patient_admissions_service(patient_id)
+    return jsonify({'success': True, 'data': admissions})
+
+@patient_bp.route('/api/admissions/<int:admID>', methods=['GET'])
+def api_get_patient_admission(admID):
+    if not patient_login_required():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    
+    try:
+        patient_id = session.get('user_id')
+        admission = get_patient_admission_by_id_service(admID, patient_id)
+        return jsonify({'success': True, 'data': admission})
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 404
