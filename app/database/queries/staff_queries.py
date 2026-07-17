@@ -1,6 +1,6 @@
 from app.database.connection import DatabaseConnection
 from datetime import datetime, timedelta
-
+from flask import session
 
 def search_patients(search_term):
     query = """
@@ -138,6 +138,11 @@ def create_appointment(data):
         )
         RETURNING appoID
     """
+    if session.get('user_role') == 'patient':
+        isOnlineReserved = True
+    else:
+        isOnlineReserved = False
+    
     result = DatabaseConnection.execute_query(
         query,
         (
@@ -146,7 +151,7 @@ def create_appointment(data):
             data['date'],
             data['time'],
             'Scheduled',
-            False
+            isOnlineReserved
         ),
         fetch_one=True,
         commit=True
