@@ -168,3 +168,33 @@ def api_transfer_patient(admID):
         })
     except ValueError as e:
         return jsonify({'success': False, 'error': str(e)}), 400
+    
+@admission_bp.route('/api/admissions/<int:admID>/end', methods=['POST'])
+def api_end_admission(admID):
+    if not office_staff_required():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    
+    try:
+        result = update_admission_end_time(admID)
+        if not result:
+            return jsonify({'success': False, 'error': 'Admission not found'}), 404
+        return jsonify({
+            'success': True,
+            'message': 'Admission marked as completed',
+            'id': result
+        })
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@admission_bp.route('/api/admissions/<int:admID>/waiting-time', methods=['GET'])
+def api_get_admission_waiting_time(admID):
+    if not office_staff_required():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    
+    try:
+        waiting_time = get_admission_waiting_time(admID)
+        if not waiting_time:
+            return jsonify({'success': False, 'error': 'Admission not found'}), 404
+        return jsonify({'success': True, 'data': waiting_time})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

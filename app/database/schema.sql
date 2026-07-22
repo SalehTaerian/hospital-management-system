@@ -134,7 +134,9 @@ CREATE TABLE IF NOT EXISTS admission (
     mID INTEGER NOT NULL REFERENCES medicalRecord(mID) ON DELETE CASCADE,
     doctorID INTEGER NOT NULL REFERENCES doctor(employeeID) ON DELETE CASCADE,
     officeStaffID INTEGER NOT NULL REFERENCES officeStaff(employeeID) ON DELETE CASCADE,
-    cost NUMERIC(15, 0)
+    cost NUMERIC(15, 0),
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    endTime TIMESTAMP
 );
 
 
@@ -299,7 +301,8 @@ CREATE TABLE IF NOT EXISTS appointment (
     time TIME NOT NULL,
     status VARCHAR(20),
     isOnlineReserved BOOLEAN,
-    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    reserveTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    enterTime TIMESTAMP
 );
 
 
@@ -368,7 +371,8 @@ CREATE TABLE IF NOT EXISTS request (
     description TEXT,
     status VARCHAR(20),
     isPatientConfirmed BOOLEAN,
-    cost NUMERIC(15, 0)
+    cost NUMERIC(15, 0),
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 

@@ -6,6 +6,8 @@ def get_all_admissions():
         SELECT 
             a.admID,
             a.cost,
+            a.createdAt,
+            a.endTime,
             p.pID as patient_id,
             p.firstName || ' ' || p.lastName as patient_name,
             p.nationalCode,
@@ -16,7 +18,8 @@ def get_all_admissions():
             bi.startTimestamp as admission_date,
             bi.status as bed_status,
             r.name as room_name,
-            dep.name as department_name
+            dep.name as department_name,
+            EXTRACT(EPOCH FROM (COALESCE(bi.startTimestamp, CURRENT_TIMESTAMP) - a.createdAt)) / 60 as waiting_minutes
         FROM admission a
         JOIN medicalRecord mr ON a.mID = mr.mID
         JOIN patient p ON mr.pID = p.pID
@@ -28,17 +31,31 @@ def get_all_admissions():
         LEFT JOIN department dep ON r.departID = dep.departID
         ORDER BY a.admID DESC
     """
-    return DatabaseConnection.execute_query(
+    results = DatabaseConnection.execute_query(
         query,
         fetch_all=True,
         fetch_dict=True
     )
+    
+    for row in results:
+        if 'createdat' in row and row['createdat']:
+            row['createdat'] = str(row['createdat'])
+        if 'endtime' in row and row['endtime']:
+            row['endtime'] = str(row['endtime'])
+        if 'admission_date' in row and row['admission_date']:
+            row['admission_date'] = str(row['admission_date'])
+        if 'waiting_minutes' in row and row['waiting_minutes']:
+            row['waiting_minutes'] = round(float(row['waiting_minutes']), 2)
+    
+    return results
 
 def get_admission_by_id(admID):
     query = """
         SELECT 
             a.admID,
             a.cost,
+            a.createdAt,
+            a.endTime,
             a.mID,
             a.doctorID,
             a.officeStaffID,
@@ -55,24 +72,37 @@ def get_admission_by_id(admID):
             r.roomID,
             r.name as room_name,
             dep.departID,
-            dep.name as department_name
+            dep.name as department_name,
+            EXTRACT(EPOCH FROM (COALESCE(bi.startTimestamp, CURRENT_TIMESTAMP) - a.createdAt)) / 60 as waiting_minutes
         FROM admission a
         JOIN medicalRecord mr ON a.mID = mr.mID
         JOIN patient p ON mr.pID = p.pID
         JOIN doctor doc ON a.doctorID = doc.employeeID
         JOIN employee e ON doc.employeeID = e.employeeID
-        LEFT JOIN bedInfo bi ON a.admID = bi.asgAdmID
+        LEFT JOIN bedInfo bi ON a.admID = bi.asgAdmID AND bi.status = 'Occupied'
         LEFT JOIN bed b ON bi.bedID = b.bedID
         LEFT JOIN room r ON bi.roomID = r.roomID
         LEFT JOIN department dep ON r.departID = dep.departID
         WHERE a.admID = %s
     """
-    return DatabaseConnection.execute_query(
+    result = DatabaseConnection.execute_query(
         query,
         (admID,),
         fetch_one=True,
         fetch_dict=True
     )
+    
+    if result:
+        if 'createdat' in result and result['createdat']:
+            result['createdat'] = str(result['createdat'])
+        if 'endtime' in result and result['endtime']:
+            result['endtime'] = str(result['endtime'])
+        if 'admission_date' in result and result['admission_date']:
+            result['admission_date'] = str(result['admission_date'])
+        if 'waiting_minutes' in result and result['waiting_minutes']:
+            result['waiting_minutes'] = round(float(result['waiting_minutes']), 2)
+    
+    return result
 
 def get_patient_by_id(patient_id):
     query = """
@@ -390,5 +420,37 @@ def get_transfer_history(admID):
         query,
         (admID, admID),
         fetch_all=True,
+        fetch_dict=True
+    )
+    
+def update_admission_end_time(admID):
+    query = """
+        UPDATE admission
+        SET endTime = CURRENT_TIMESTAMP
+        WHERE admID = %s
+        RETURNING admID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (admID,),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def get_admission_waiting_time(admID):
+    query = """
+        SELECT 
+            admID,
+            createdAt,
+            endTime,
+            EXTRACT(EPOCH FROM (COALESCE(endTime, CURRENT_TIMESTAMP) - createdAt)) / 60 as waiting_minutes
+        FROM admission
+        WHERE admID = %s
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        (admID,),
+        fetch_one=True,
         fetch_dict=True
     )

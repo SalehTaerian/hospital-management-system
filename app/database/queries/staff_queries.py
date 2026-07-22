@@ -77,8 +77,11 @@ def get_today_appointments():
             a.date,
             a.time,
             a.status,
+            a.reserveTime,
+            a.enterTime,
             p.firstName || ' ' || p.lastName as patient_name,
-            e.firstName || ' ' || e.lastName as doctor_name
+            e.firstName || ' ' || e.lastName as doctor_name,
+            EXTRACT(EPOCH FROM (COALESCE(a.enterTime, CURRENT_TIMESTAMP) - a.reserveTime)) / 60 as waiting_minutes
         FROM appointment AS a
         JOIN medicalRecord AS mr ON a.mID = mr.mID
         JOIN patient AS p ON mr.pID = p.pID
@@ -94,77 +97,151 @@ def get_today_appointments():
             row["time"] = str(row["time"])
         if "date" in row and row["date"]:
             row["date"] = str(row["date"])
+        if "reservetime" in row and row["reservetime"]:
+            row["reservetime"] = str(row["reservetime"])
+        if "entertime" in row and row["entertime"]:
+            row["entertime"] = str(row["entertime"])
+        if "waiting_minutes" in row and row["waiting_minutes"]:
+            row["waiting_minutes"] = round(float(row["waiting_minutes"]), 2)
 
     return results
 
-
-def create_appointment(data):
-    shift = get_doctor_shift(data["doctor_id"], data["date"])
-    if not shift:
-        raise ValueError("Doctor is not on shift for this date")
-
-    shift_start = shift["starttime"]
-    shift_end = shift["endtime"]
-    appointment_time = data["time"]
-
-    booked = get_booked_appointments(data["doctor_id"], data["date"])
-    booked_times = [apt["time"] for apt in booked]
-
-    if appointment_time in booked_times:
-        raise ValueError("This time slot is already booked")
-
+def create_appointment(data):    
+    availability = check_time_availability(data['doctor_id'], data['date'], data['time'])
+    if not availability['available']:
+        raise ValueError(availability['reason'])
+    
     mr_query = "SELECT mID FROM medicalRecord WHERE pID = %s"
-    mr_result = DatabaseConnection.execute_query(
+    mr_id = DatabaseConnection.execute_query(
         mr_query, (data["patient_id"],), fetch_one=True, fetch_dict=True
     )
-
-    if not mr_result:
+    if not mr_id:
         raise ValueError("Patient has no medical record")
-
-    follow_id = data.get('follow_up_id')
+    
+    follow_up_id = data.get('follow_up_id')
+    follow_id = None
+    if follow_up_id:
+        check_query = """
+            SELECT followID FROM appointment WHERE appoID = %s
+        """
+        result = DatabaseConnection.execute_query(
+            check_query,
+            (follow_up_id,),
+            fetch_one=True,
+            fetch_dict=True
+        )
+        if result:
+            follow_id = result['followid']
+        else:
+            raise ValueError("Follow-up appointment not found")
+    
     if not follow_id:
         from app.database.queries.followup_queries import create_followup
         follow_id = create_followup(0)
         if not follow_id:
             raise ValueError("Failed to create followup record")
-    else:
-        from app.database.queries.followup_queries import get_followup_by_id
-        followup = get_followup_by_id(follow_id)
-        if not followup:
-            raise ValueError("Selected follow-up does not exist")
-        
-        
+    
     query = """
         INSERT INTO appointment (
-            mID, doctorID,staffID, date, time, status, isOnlineReserved, followID
+            mID, doctorID, staffID, date, time, status, isOnlineReserved, followID, reserveTime
         ) VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP
         )
         RETURNING appoID
     """
+    
     if session.get("user_role") == "patient":
         isOnlineReserved = True
         staffID = None
     else:
         isOnlineReserved = False
         staffID = session.get("user_id")
-
+        
+        
     result = DatabaseConnection.execute_query(
         query,
         (
-            mr_result["mid"],
-            data["doctor_id"],
+            mr_id,
+            data['doctor_id'],
             staffID,
-            data["date"],
-            data["time"],
-            "Scheduled",
+            data['date'],
+            data['time'],
+            'Scheduled',
             isOnlineReserved,
             follow_id
         ),
         fetch_one=True,
-        commit=True,
+        commit=True
     )
     return result[0] if result else None
+
+# def create_appointment(data):
+#     shift = get_doctor_shift(data["doctor_id"], data["date"])
+#     if not shift:
+#         raise ValueError("Doctor is not on shift for this date")
+
+#     shift_start = shift["starttime"]
+#     shift_end = shift["endtime"]
+#     appointment_time = data["time"]
+
+#     booked = get_booked_appointments(data["doctor_id"], data["date"])
+#     booked_times = [apt["time"] for apt in booked]
+
+#     if appointment_time in booked_times:
+#         raise ValueError("This time slot is already booked")
+
+#     mr_query = "SELECT mID FROM medicalRecord WHERE pID = %s"
+#     mr_result = DatabaseConnection.execute_query(
+#         mr_query, (data["patient_id"],), fetch_one=True, fetch_dict=True
+#     )
+
+#     if not mr_result:
+#         raise ValueError("Patient has no medical record")
+
+#     follow_id = data.get('follow_up_id')
+#     if not follow_id:
+#         from app.database.queries.followup_queries import create_followup
+#         follow_id = create_followup(0)
+#         if not follow_id:
+#             raise ValueError("Failed to create followup record")
+#     else:
+#         from app.database.queries.followup_queries import get_followup_by_id
+#         followup = get_followup_by_id(follow_id)
+#         if not followup:
+#             raise ValueError("Selected follow-up does not exist")
+        
+        
+#     query = """
+#         INSERT INTO appointment (
+#             mID, doctorID,staffID, date, time, status, isOnlineReserved, followID
+#         ) VALUES (
+#             %s, %s, %s, %s, %s, %s, %s, %s
+#         )
+#         RETURNING appoID
+#     """
+#     if session.get("user_role") == "patient":
+#         isOnlineReserved = True
+#         staffID = None
+#     else:
+#         isOnlineReserved = False
+#         staffID = session.get("user_id")
+
+#     result = DatabaseConnection.execute_query(
+#         query,
+#         (
+#             mr_result["mid"],
+#             data["doctor_id"],
+#             staffID,
+#             data["date"],
+#             data["time"],
+#             "Scheduled",
+#             isOnlineReserved,
+#             follow_id
+#         ),
+#         fetch_one=True,
+#         commit=True,
+#     )
+#     return result[0] if result else None
 
 
 def get_appointments_by_patient(patient_id):
@@ -698,4 +775,101 @@ def visits_per_day():
         GROUP BY DATE_TRUNC(date , 'Day')
     """
     results = DatabaseConnection.execute_query(query, fetch_all=True, fetch_dict=True)
+    return results
+
+def get_appointment_waiting_time(appointment_id):
+    query = """
+        SELECT 
+            appoID,
+            reserveTime,
+            enterTime,
+            EXTRACT(EPOCH FROM (COALESCE(enterTime, CURRENT_TIMESTAMP) - reserveTime)) / 60 as waiting_minutes
+        FROM appointment
+        WHERE appoID = %s
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (appointment_id,),
+        fetch_one=True,
+        fetch_dict=True
+    )
+    if result:
+        if 'reservetime' in result and result['reservetime']:
+            result['reservetime'] = str(result['reservetime'])
+        if 'entertime' in result and result['entertime']:
+            result['entertime'] = str(result['entertime'])
+        if 'waiting_minutes' in result and result['waiting_minutes']:
+            result['waiting_minutes'] = round(float(result['waiting_minutes']), 2)
+    return result
+
+def update_appointment_enter_time(appointment_id):
+    query = """
+        UPDATE appointment
+        SET enterTime = CURRENT_TIMESTAMP
+        WHERE appoID = %s
+        RETURNING appoID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (appointment_id,),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def get_appointments_with_waiting_time(doctor_id=None, patient_id=None):
+    query = """
+        SELECT 
+            a.appoID,
+            a.date,
+            a.time,
+            a.status,
+            a.isOnlineReserved,
+            a.reserveTime,
+            a.enterTime,
+            a.createdAt,
+            p.pID as patient_id,
+            p.firstName || ' ' || p.lastName as patient_name,
+            e.firstName || ' ' || e.lastName as doctor_name,
+            EXTRACT(EPOCH FROM (COALESCE(a.enterTime, CURRENT_TIMESTAMP) - a.reserveTime)) / 60 as waiting_minutes
+        FROM appointment a
+        JOIN medicalRecord mr ON a.mID = mr.mID
+        JOIN patient p ON mr.pID = p.pID
+        JOIN doctor d ON a.doctorID = d.employeeID
+        JOIN employee e ON d.employeeID = e.employeeID
+        WHERE 1=1
+    """
+    params = []
+    
+    if doctor_id:
+        query += " AND a.doctorID = %s"
+        params.append(doctor_id)
+    
+    if patient_id:
+        query += " AND mr.pID = %s"
+        params.append(patient_id)
+    
+    query += " ORDER BY a.date DESC, a.time DESC"
+    
+    results = DatabaseConnection.execute_query(
+        query,
+        tuple(params) if params else None,
+        fetch_all=True,
+        fetch_dict=True
+    )
+    
+    for row in results:
+        if 'time' in row and row['time']:
+            row['time'] = str(row['time'])
+        if 'date' in row and row['date']:
+            row['date'] = str(row['date'])
+        if 'reservetime' in row and row['reservetime']:
+            row['reservetime'] = str(row['reservetime'])
+        if 'entertime' in row and row['entertime']:
+            row['entertime'] = str(row['entertime'])
+        if 'createdat' in row and row['createdat']:
+            row['createdat'] = str(row['createdat'])
+        if 'waiting_minutes' in row and row['waiting_minutes']:
+            row['waiting_minutes'] = round(float(row['waiting_minutes']), 2)
+    
     return results

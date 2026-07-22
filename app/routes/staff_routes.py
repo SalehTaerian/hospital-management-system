@@ -280,3 +280,43 @@ def api_get_patient_with_admission_info_service(patient_id):
         return jsonify({"success": True, "data": patient})
     except ValueError as e:
         return jsonify({"success": False, "error": str(e)}), 404
+
+@staff_bp.route('/api/appointments/<int:appointment_id>/enter', methods=['POST'])
+def api_update_appointment_enter_time(appointment_id):
+    if not staff_login_required():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    
+    try:
+        result = update_appointment_enter_time(appointment_id)
+        if not result:
+            return jsonify({'success': False, 'error': 'Appointment not found'}), 404
+        return jsonify({
+            'success': True,
+            'message': 'Patient entered successfully',
+            'id': result
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@staff_bp.route('/api/appointments/<int:appointment_id>/waiting-time', methods=['GET'])
+def api_get_appointment_waiting_time(appointment_id):
+    if not staff_login_required():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    
+    try:
+        waiting_time = get_appointment_waiting_time(appointment_id)
+        if not waiting_time:
+            return jsonify({'success': False, 'error': 'Appointment not found'}), 404
+        return jsonify({'success': True, 'data': waiting_time})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@staff_bp.route('/api/appointments/waiting-times', methods=['GET'])
+def api_get_appointments_waiting_times():
+    if not staff_login_required():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    
+    doctor_id = request.args.get('doctor_id', type=int)
+    patient_id = request.args.get('patient_id', type=int)
+    appointments = get_appointments_with_waiting_time(doctor_id, patient_id)
+    return jsonify({'success': True, 'data': appointments})

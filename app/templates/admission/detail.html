@@ -18,6 +18,11 @@
                         <button class="btn btn-success btn-discharge" data-adm-id="{{ admID }}">
                             <i class="bi bi-box-arrow-right"></i> Discharge
                         </button>
+                        {% if not end_time %}
+                        <button class="btn btn-info btn-end-admission" data-adm-id="{{ admID }}">
+                            <i class="bi bi-clock"></i> End Admission
+                        </button>
+                        {% endif %}
                         <a href="{{ url_for('admission.index') }}" class="btn btn-light">
                             <i class="bi bi-arrow-left"></i> Back
                         </a>
@@ -49,7 +54,7 @@
             </div>
             <div class="modal-body">
                 <form id="transferForm">
-                    <input type="hidden" id="transferAdmId" value="{{ admID }}">
+                    <input type="hidden" id="transferAdmId">
                     
                     <div class="mb-3">
                         <label class="form-label">Room</label>
@@ -85,8 +90,7 @@
 {% block scripts %}
 <script>
 $(document).ready(function() {
-    // Get admID from hidden input
-    var admId = parseInt($('#transferAdmId').val()) || 0;
+    var admId = parseInt('{{ admID }}') || 0;
     
     loadAdmissionDetail(admId);
     loadRoomsForTransfer();
@@ -101,6 +105,13 @@ $(document).ready(function() {
         var id = $(this).data('adm-id');
         if (confirm('Are you sure you want to discharge this patient?')) {
             dischargePatient(id);
+        }
+    });
+    
+    $('.btn-end-admission').on('click', function() {
+        var id = $(this).data('adm-id');
+        if (confirm('Mark this admission as completed?')) {
+            endAdmission(id);
         }
     });
     
@@ -132,6 +143,14 @@ function loadAdmissionDetail(admId) {
                     '<span class="badge bg-success">Active</span>' : 
                     '<span class="badge bg-secondary">Discharged</span>';
                 
+                var waitingTime = adm.waiting_minutes ? 
+                    '<span class="badge bg-warning text-dark">' + adm.waiting_minutes + ' minutes</span>' : 
+                    '<span class="badge bg-secondary">N/A</span>';
+                
+                var endTimeDisplay = adm.endtime ? 
+                    '<span class="text-success">' + adm.endtime + '</span>' : 
+                    '<span class="text-warning">Not ended yet</span>';
+                
                 var html = '<div class="card-body">';
                 html += '<div class="row">';
                 html += '<div class="col-md-6">';
@@ -140,7 +159,7 @@ function loadAdmissionDetail(admId) {
                 html += '<tr><td><strong>Name:</strong></td><td>' + adm.patient_name + '</td></tr>';
                 html += '<tr><td><strong>National Code:</strong></td><td>' + adm.nationalcode + '</td></tr>';
                 html += '<tr><td><strong>Doctor:</strong></td><td>' + adm.doctor_name + '</td></tr>';
-                html += '<tr><td><strong>Admission Date:</strong></td><td>' + (adm.admission_date || 'N/A') + '</td></tr>';
+                html += '<tr><td><strong>Admission Date:</strong></td><td>' + (adm.admission_date || adm.createdat) + '</td></tr>';
                 html += '</table>';
                 html += '</div>';
                 html += '<div class="col-md-6">';
@@ -151,6 +170,8 @@ function loadAdmissionDetail(admId) {
                 html += '<tr><td><strong>Department:</strong></td><td>' + (adm.department_name || 'N/A') + '</td></tr>';
                 html += '<tr><td><strong>Status:</strong></td><td>' + statusBadge + '</td></tr>';
                 html += '<tr><td><strong>Cost:</strong></td><td>$' + parseFloat(adm.cost || 0).toFixed(2) + '</td></tr>';
+                html += '<tr><td><strong>End Time:</strong></td><td>' + endTimeDisplay + '</td></tr>';
+                html += '<tr><td><strong>Waiting Time:</strong></td><td>' + waitingTime + '</td></tr>';
                 html += '</table>';
                 html += '</div>';
                 html += '</div>';
@@ -182,6 +203,21 @@ function loadAdmissionDetail(admId) {
         },
         error: function() {
             $('#detailContainer').html('<div class="card-body"><div class="alert alert-danger">Error loading admission details</div></div>');
+        }
+    });
+}
+
+function endAdmission(admId) {
+    $.ajax({
+        url: '/admissions/api/admissions/' + admId + '/end',
+        method: 'POST',
+        success: function(response) {
+            if (response.success) {
+                alert('✅ Admission marked as completed!');
+                loadAdmissionDetail(admId);
+            } else {
+                alert('❌ Error: ' + response.error);
+            }
         }
     });
 }
@@ -279,9 +315,7 @@ function transferPatient() {
 
 function showTransferMessage(message, type) {
     var msg = $('#transferMessage');
-    msg.removeClass('d-none alert-success alert-danger')
-       .addClass('alert-' + type)
-       .text(message);
+    msg.removeClass('d-none alert-success alert-danger').addClass('alert-' + type).text(message);
 }
 </script>
 {% endblock %}
