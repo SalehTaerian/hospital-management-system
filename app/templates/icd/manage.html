@@ -307,11 +307,12 @@
                                 <th>Patient</th>
                                 <th>Status</th>
                                 <th>Start Time</th>
+                                <th>End Time</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr><td colspan="8" class="text-center">Loading...</td></tr>
+                            <tr><td colspan="9" class="text-center">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1323,6 +1324,7 @@ function loadBedinfo() {
                     row += '<td>' + (item.patient_name || '-') + '</td>';
                     row += '<td><span class="badge bg-' + color + '">' + item.status + '</span></td>';
                     row += '<td>' + (item.starttimestamp || '') + '</td>';
+                    row += '<td>' + (item.endtimestamp || '') + '</td>';
                     row += '<td>' +
                         '<button class="btn btn-sm btn-primary btn-edit-bedinfo" data-id="' + item.biid + '"><i class="bi bi-pencil"></i></button>' +
                         '<button class="btn btn-sm btn-danger btn-delete-bedinfo" data-id="' + item.biid + '"><i class="bi bi-trash"></i></button>' +
@@ -1392,6 +1394,7 @@ function saveBedinfo() {
         roomID: $('#bedinfoRoomId').val(),
         asgAdmID: $('#bedinfoAdmId').val() || null,
         startTimestamp: $('#bedinfoStartTime').val(),
+        endTimestamp: $('#bedinfoEndTime').val(),
         status: $('#bedinfoStatus').val()
     };
     if (!data.bedID) {
@@ -1449,6 +1452,7 @@ function editBedinfo(id) {
                 $('#bedinfoRoomId').val(data.roomid);
                 $('#bedinfoAdmId').val(data.asgadmid || '');
                 $('#bedinfoStartTime').val(data.starttimestamp);
+                $('#bedinfoEndTime').val(data.endtimestamp);
                 $('#bedinfoStatus').val(data.status);
                 $('#bedinfoMessage').addClass('d-none');
                 $('#bedinfoModal').modal('show');

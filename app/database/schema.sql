@@ -1,4 +1,4 @@
-CREATE TABLE patient (
+CREATE TABLE IF NOT EXISTS patient (
     pID SERIAL PRIMARY KEY,
     firstName VARCHAR(35) NOT NULL,
     lastName VARCHAR(35) NOT NULL,
@@ -17,7 +17,7 @@ CREATE TABLE patient (
 );
 
 
-CREATE TABLE medicalRecord (
+CREATE TABLE IF NOT EXISTS medicalRecord (
     mID SERIAL PRIMARY KEY,
     pID INTEGER NOT NULL REFERENCES patient(pID) ON DELETE CASCADE,
     bloodType VARCHAR(5),
@@ -25,7 +25,7 @@ CREATE TABLE medicalRecord (
 );
 
 
-CREATE TABLE insurance (
+CREATE TABLE IF NOT EXISTS insurance (
     insuranceID SERIAL PRIMARY KEY,
     pID INTEGER NOT NULL REFERENCES patient(pID) ON DELETE CASCADE,
     name VARCHAR(35) NOT NULL,
@@ -37,7 +37,7 @@ CREATE TABLE insurance (
 );
 
 
-CREATE TABLE hospital (
+CREATE TABLE IF NOT EXISTS hospital (
     hospitalID SERIAL PRIMARY KEY,
     name VARCHAR(30),
     city VARCHAR(20),
@@ -48,7 +48,7 @@ CREATE TABLE hospital (
 );
 
 
-CREATE TABLE department (
+CREATE TABLE IF NOT EXISTS department (
     departID SERIAL PRIMARY KEY,
     hospitalID INTEGER NOT NULL REFERENCES hospital (hospitalID) ON DELETE CASCADE,
     name VARCHAR(30),
@@ -56,7 +56,7 @@ CREATE TABLE department (
 );
 
 
-CREATE Table employee (
+CREATE Table IF NOT EXISTS employee (
     employeeID SERIAL PRIMARY KEY,
     departID INTEGER NOT NULL REFERENCES department (departID) ON DELETE CASCADE,
     firstName VARCHAR(50),
@@ -70,44 +70,44 @@ CREATE Table employee (
 );
 
 
-CREATE TABLE officeStaff (
+CREATE TABLE IF NOT EXISTS officeStaff (
     employeeID INTEGER NOT NULL PRIMARY KEY REFERENCES employee (employeeID) ON DELETE CASCADE,
     role VARCHAR(30)
 );
 
 
-CREATE TABLE nurse (
+CREATE TABLE IF NOT EXISTS nurse (
     employeeID INTEGER NOT NULL PRIMARY KEY REFERENCES employee (employeeID) ON DELETE CASCADE,
     medicalNumber VARCHAR(20)
 );
 
 
-CREATE TABLE surgeon (
+CREATE TABLE IF NOT EXISTS surgeon (
     employeeID INTEGER NOT NULL PRIMARY KEY REFERENCES employee (employeeID) ON DELETE CASCADE,
     medicalNumber VARCHAR(20),
     surgicalField VARCHAR(30)
 );
 
 
-CREATE TABLE doctor (
+CREATE TABLE IF NOT EXISTS doctor (
     employeeID INTEGER NOT NULL PRIMARY KEY REFERENCES employee (employeeID) ON DELETE CASCADE,
     medicalNumber VARCHAR(20),
     visitCost NUMERIC(15, 0)
 );
 
 
-CREATE TABLE specializationFields (
+CREATE TABLE IF NOT EXISTS specializationFields (
     specID SERIAL PRIMARY KEY,
     name VARCHAR(20)
 );
-CREATE TABLE doctorSpecialization (
+CREATE TABLE IF NOT EXISTS doctorSpecialization (
     docID INTEGER NOT NULL REFERENCES doctor (employeeID) ON DELETE CASCADE,
     specID INTEGER NOT NULL REFERENCES specializationFields (specID) ON DELETE CASCADE,
     PRIMARY KEY(docID , specID)
 );
 
 
-CREATE TABLE surgeonSpecialization
+CREATE TABLE IF NOT EXISTS surgeonSpecialization
  (
     surgeonID INTEGER NOT NULL REFERENCES surgeon (employeeID) ON DELETE CASCADE,
     specID INTEGER NOT NULL REFERENCES specializationFields (specID) ON DELETE CASCADE,
@@ -115,7 +115,7 @@ CREATE TABLE surgeonSpecialization
 );
 
 
-CREATE TABLE shift (
+CREATE TABLE IF NOT EXISTS shift (
     shiftID SERIAL PRIMARY KEY,
     shiftDate TIMESTAMP, --?????
     startTime TIMESTAMP,
@@ -123,13 +123,13 @@ CREATE TABLE shift (
 );
 
 
-CREATE TABLE employeeShift (
+CREATE TABLE IF NOT EXISTS employeeShift (
     employeeID INTEGER NOT NULL REFERENCES employee (employeeID) ON DELETE CASCADE,
     shiftID INT NOT NULL REFERENCES shift (shiftID) ON DELETE CASCADE
 );
 
 
-CREATE TABLE admission (
+CREATE TABLE IF NOT EXISTS admission (
     admID SERIAL PRIMARY KEY,
     mID INTEGER NOT NULL REFERENCES medicalRecord(mID) ON DELETE CASCADE,
     doctorID INTEGER NOT NULL REFERENCES doctor(employeeID) ON DELETE CASCADE,
@@ -138,7 +138,7 @@ CREATE TABLE admission (
 );
 
 
-CREATE TABLE parameterList (
+CREATE TABLE IF NOT EXISTS parameterList (
     parameterID SERIAL PRIMARY KEY,
     parameterName VARCHAR(25),
     min DECIMAL(10,5),
@@ -147,34 +147,34 @@ CREATE TABLE parameterList (
 );
 
 
-CREATE TABLE icdCode (
+CREATE TABLE IF NOT EXISTS icdCode (
     icdID SERIAL PRIMARY KEY,
     code VARCHAR(20) UNIQUE NOT NULL,
     diseaseName VARCHAR(50) NOT NULL
 );
 
 
-CREATE TABLE icdmCode (
+CREATE TABLE IF NOT EXISTS icdmCode (
     icdmID SERIAL PRIMARY KEY,
     icdID INTEGER NOT NULL REFERENCES icdCode(icdID) ON DELETE CASCADE,
     medicineName VARCHAR(20) NOT NULL
 );
 
 
-CREATE TABLE icdsCode (
+CREATE TABLE IF NOT EXISTS icdsCode (
     icdsID SERIAL PRIMARY KEY,
     surgeryName VARCHAR(20),
     cost NUMERIC(15, 0)
 );
 
-CREATE TABLE icdtCode (
+CREATE TABLE IF NOT EXISTS icdtCode (
     icdtID SERIAL PRIMARY KEY,
     testName VARCHAR(50),
     cost NUMERIC(15, 0)
 );
 
 
-CREATE TABLE storage (
+CREATE TABLE IF NOT EXISTS storage (
     storageID SERIAL PRIMARY KEY,
     departID INTEGER NOT NULL REFERENCES department (departID) ON DELETE CASCADE,
     medID INTEGER NOT NULL REFERENCES icdmCode (icdmID) ON DELETE CASCADE,
@@ -185,14 +185,14 @@ CREATE TABLE storage (
     cost NUMERIC(15, 0)
 );
 
-CREATE TABLE medicineConflict (
+CREATE TABLE IF NOT EXISTS medicineConflict (
     medconfID SERIAL PRIMARY KEY,
     departID INTEGER NOT NULL REFERENCES department (departID) ON DELETE CASCADE,
     icdm1ID INTEGER NOT NULL REFERENCES icdmCode (icdmID) ON DELETE CASCADE,
     icdm2ID INTEGER NOT NULL REFERENCES icdmCode (icdmID) ON DELETE CASCADE
 );
 
-CREATE TABLE room (
+CREATE TABLE IF NOT EXISTS room (
     roomID SERIAL PRIMARY KEY,
     departID INTEGER NOT NULL REFERENCES department (departID) ON DELETE CASCADE,
     name VARCHAR(20),
@@ -200,7 +200,7 @@ CREATE TABLE room (
 );
 
 
-CREATE TABLE surgery (
+CREATE TABLE IF NOT EXISTS surgery (
     surgeryID SERIAL PRIMARY KEY,
     surgeryCode INTEGER NOT NULL REFERENCES icdsCode (icdsID) ON DELETE CASCADE,
     pID INTEGER NOT NULL REFERENCES patient(pID) ON DELETE CASCADE,
@@ -211,26 +211,27 @@ CREATE TABLE surgery (
     finalReport TEXT
 );
 
-CREATE TABLE surgeryTeam (
+CREATE TABLE IF NOT EXISTS surgeryTeam (
     surgeryID INTEGER NOT NULL REFERENCES surgery (surgeryID) ON DELETE CASCADE,
     surgeonID INTEGER NOT NULL REFERENCES surgeon (employeeID) ON DELETE CASCADE
 );
 
-CREATE TABLE bed ( 
+CREATE TABLE IF NOT EXISTS bed ( 
     bedID SERIAL PRIMARY KEY,
     cost NUMERIC(15, 0) 
 );
 
-CREATE TABLE bedInfo (
+CREATE TABLE IF NOT EXISTS bedInfo (
     biID SERIAL PRIMARY KEY,
     bedID INTEGER NOT NULL REFERENCES bed (bedID) ON DELETE CASCADE,
     roomID INTEGER NOT NULL REFERENCES room (roomID) ON DELETE CASCADE,
     asgAdmID INTEGER REFERENCES admission (admID) ON DELETE CASCADE,
     startTimestamp TIMESTAMP,
+    endTime TIMESTAMP,
     status VARCHAR(20)
 );
 
-CREATE TABLE transfer (
+CREATE TABLE IF NOT EXISTS transfer (
     transferID SERIAL PRIMARY KEY,
     admID INTEGER NOT NULL REFERENCES admission(admID) ON DELETE CASCADE,
     destBedID INTEGER NOT NULL REFERENCES bed(bedID) ON DELETE CASCADE,
@@ -239,12 +240,12 @@ CREATE TABLE transfer (
 );
 
 
-CREATE TABLE signType (
+CREATE TABLE IF NOT EXISTS signType (
     sTypeID SERIAL PRIMARY KEY,
     signName VARCHAR(20) --???
 );
 
-CREATE TABLE equipment (
+CREATE TABLE IF NOT EXISTS equipment (
     equipID SERIAL PRIMARY KEY,
     sTypeID INTEGER NOT NULL REFERENCES signType (sTypeID) ON DELETE CASCADE,
     name VARCHAR(30),
@@ -252,16 +253,17 @@ CREATE TABLE equipment (
     description TEXT
 );
 
-CREATE TABLE equipInfo (a
+CREATE TABLE IF NOT EXISTS equipInfo (a
     eiID SERIAL PRIMARY KEY,
     equipID INTEGER NOT NULL REFERENCES equipment (equipID) ON DELETE CASCADE,
     roomID INTEGER NOT NULL REFERENCES room (roomID) ON DELETE CASCADE,
     asgAdmID INTEGER NOT NULL REFERENCES admission(admID) ON DELETE CASCADE,
     startTimestamp TIMESTAMP,
+    endTime TIMESTAMP,
     status VARCHAR(20)
 );
 
-CREATE TABLE log (
+CREATE TABLE IF NOT EXISTS log (
     logID SERIAL PRIMARY KEY,
     equipID INTEGER NOT NULL REFERENCES equipment(equipID) ON DELETE CASCADE,
     parameterID INTEGER NOT NULL REFERENCES parameterList(parameterID) ON DELETE CASCADE,
@@ -271,7 +273,7 @@ CREATE TABLE log (
 );
 
 
-CREATE TABLE warning (
+CREATE TABLE IF NOT EXISTS warning (
     warnID SERIAL PRIMARY KEY,
     logID INTEGER NOT NULL REFERENCES log(logID) ON DELETE CASCADE,
     importance  VARCHAR(20) ,
@@ -281,10 +283,11 @@ CREATE TABLE warning (
 );
 
 
-CREATE TABLE appointment (
+CREATE TABLE IF NOT EXISTS appointment (
     appoID SERIAL PRIMARY KEY,
     mID INTEGER NOT NULL REFERENCES medicalRecord(mID) ON DELETE CASCADE,
     doctorID INTEGER NOT NULL REFERENCES doctor(employeeID),
+    staffID INTEGER REFERENCES officeStaff(employeeID) ON DELETE CASCADE,
     date DATE NOT NULL,
     time TIME NOT NULL,
     status VARCHAR(20),
@@ -293,21 +296,21 @@ CREATE TABLE appointment (
 );
 
 
-CREATE TABLE medicineDiag (
+CREATE TABLE IF NOT EXISTS medicineDiag (
     appoID INTEGER NOT NULL REFERENCES appointment(appoID) ON DELETE CASCADE,
     icdmID INTEGER NOT NULL REFERENCES icdmCode(icdmID) ON DELETE CASCADE,
     description TEXT
 );
 
 
-CREATE TABLE diseaseDiag (
+CREATE TABLE IF NOT EXISTS diseaseDiag (
     appoID INTEGER NOT NULL REFERENCES appointment(appoID) ON DELETE CASCADE,
     icdID INTEGER NOT NULL REFERENCES icdCode(icdID) ON DELETE CASCADE,
     description TEXT
 );
 
 
-CREATE TABLE vitalSign (
+CREATE TABLE IF NOT EXISTS vitalSign (
     vitalID SERIAL PRIMARY KEY,
     appoID INTEGER NOT NULL REFERENCES appointment(appoID) ON DELETE CASCADE,
     parameterID INTEGER NOT NULL REFERENCES parameterList(parameterID) ON DELETE CASCADE,
@@ -315,7 +318,7 @@ CREATE TABLE vitalSign (
 );
 
 
-CREATE TABLE diseaseRecord (
+CREATE TABLE IF NOT EXISTS diseaseRecord (
     diseaseID SERIAL PRIMARY KEY,
     mID INTEGER NOT NULL REFERENCES medicalRecord(mID) ON DELETE CASCADE,
     icdID INTEGER NOT NULL REFERENCES icdCode(icdID) ON DELETE CASCADE,
@@ -323,14 +326,14 @@ CREATE TABLE diseaseRecord (
 );
 
 
-CREATE TABLE drugRecord (
+CREATE TABLE IF NOT EXISTS drugRecord (
     drugID SERIAL PRIMARY KEY,
     mID INTEGER NOT NULL REFERENCES medicalRecord(mID) ON DELETE CASCADE,
     description TEXT
 );
 
 
-CREATE TABLE medicineRecord (
+CREATE TABLE IF NOT EXISTS medicineRecord (
     medicineID SERIAL PRIMARY KEY,
     mID INTEGER NOT NULL REFERENCES medicalRecord(mID) ON DELETE CASCADE,
     icdmID INTEGER NOT NULL REFERENCES icdmCode(icdmID) ON DELETE CASCADE,
@@ -338,7 +341,7 @@ CREATE TABLE medicineRecord (
 );
 
 
-CREATE TABLE request (
+CREATE TABLE IF NOT EXISTS request (
     reqID SERIAL PRIMARY KEY,
     mID INTEGER NOT NULL REFERENCES medicalRecord(mID) ON DELETE CASCADE,
     doctorID INTEGER NOT NULL REFERENCES doctor(employeeID) ON DELETE CASCADE,
@@ -353,7 +356,7 @@ CREATE TABLE request (
 );
 
 
-CREATE TABLE parameterResult (
+CREATE TABLE IF NOT EXISTS parameterResult (
     resultID SERIAL PRIMARY KEY,
     reqID INTEGER NOT NULL REFERENCES request(reqID) ON DELETE CASCADE,
     parameterID INTEGER NOT NULL REFERENCES parameterList(parameterID) ON DELETE CASCADE,
@@ -361,16 +364,16 @@ CREATE TABLE parameterResult (
 );
 
 
-CREATE TABLE receptionReserve (
-    reserveID SERIAL PRIMARY KEY,
-    officeStaffID INTEGER NOT NULL REFERENCES officeStaff(employeeID) ON DELETE CASCADE,
-    pID INTEGER NOT NULL REFERENCES patient(pID) ON DELETE CASCADE,
-    appoID INTEGER REFERENCES appointment(appoID) ON DELETE CASCADE,
-    surgeryID INTEGER REFERENCES surgery(surgeryID) ON DELETE CASCADE,
-    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+-- CREATE TABLE receptionReserve (
+--     reserveID SERIAL PRIMARY KEY,
+--     officeStaffID INTEGER NOT NULL REFERENCES officeStaff(employeeID) ON DELETE CASCADE,
+--     pID INTEGER NOT NULL REFERENCES patient(pID) ON DELETE CASCADE,
+--     appoID INTEGER REFERENCES appointment(appoID) ON DELETE CASCADE,
+--     surgeryID INTEGER REFERENCES surgery(surgeryID) ON DELETE CASCADE,
+--     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
 
-CREATE TABLE invoice (
+CREATE TABLE IF NOT EXISTS invoice (
     invID SERIAL PRIMARY KEY,
     pID INTEGER NOT NULL REFERENCES patient(pID) ON DELETE CASCADE,
     appoID INTEGER REFERENCES appointment(appoID) ON DELETE CASCADE,
@@ -385,14 +388,14 @@ CREATE TABLE invoice (
 );
 
 
-CREATE TABLE allItems (
+CREATE TABLE IF NOT EXISTS allItems (
     itemID SERIAL PRIMARY KEY,
     itemType VARCHAR(20),
     description TEXT
 );
 
 
-CREATE TABLE invoiceItem (
+CREATE TABLE IF NOT EXISTS invoiceItem (
     itemID INTEGER NOT NULL REFERENCES invoice(invID) ON DELETE CASCADE,
     invoiceID INTEGER NOT NULL REFERENCES allItems(itemID) ON DELETE CASCADE,
     description TEXT

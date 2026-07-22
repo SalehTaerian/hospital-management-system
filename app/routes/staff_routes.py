@@ -1,7 +1,9 @@
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
 from app.services.auth_service import is_logged_in
 from app.services.staff_service import *
-
+import matplotlib.pyplot as plt
+import io
+import base64
 staff_bp = Blueprint('staff', __name__, url_prefix='/staff')
 
 def staff_login_required():
@@ -18,7 +20,20 @@ def office_staff_required():
 def dashboard():
     if not staff_login_required():
         return redirect('/staff-login')
-    
+    # occupiedBeds = get_occupied_beds_by_department()
+    # names = [item["name"] for item in occupiedBeds]
+    # values = [item["occupied"] for item in occupiedBeds]
+    # plt.figure()
+    # plt.bar(names , values)
+    # plt.title("Occupied Beds by Department")
+    # plt.xlabel("Department")
+    # plt.ylabel("Occupied Beds")
+    # img = io.BytesIO()
+    # plt.savefig(img, format="png")
+    # img.seek(0)
+    # plt.close()
+    # imgBase64 = base64.b64encode(img.getvalue()).decode('utf-8')
+    # return render_template('staff/dashboard.html' , chart = imgBase64)
     return render_template('staff/dashboard.html')
 
 @staff_bp.route('/patients')

@@ -168,3 +168,11 @@ def get_employee_shifts_service(employee_id, start_date=None, end_date=None):
 
 def get_dashboard_stats_service():
     return get_dashboard_stats()
+
+def get_occupied_beds_by_department():
+    return get_occupied_beds()
+
+def working_pressure_service():
+    return working_pressure()
+
+    
