@@ -18,18 +18,18 @@
                     <!-- Patient Search -->
                     <div class="mb-3">
                         <label class="form-label">Patient</label>
-                        <input type="text" class="form-control" id="patientSearch" 
-                               placeholder="Search by name or national code...">
+                        <input type="text" class="form-control" id="patientSearch"
+                            placeholder="Search by name or national code...">
                         <input type="hidden" id="patientId">
                         <div id="patientSuggestions" class="list-group mt-1"></div>
                     </div>
-                    
+
                     <!-- Date Picker -->
                     <div class="mb-3">
                         <label class="form-label">Date</label>
                         <input type="date" class="form-control" id="appointmentDate" required>
                     </div>
-                    
+
                     <!-- Doctor Selection -->
                     <div class="mb-3">
                         <label class="form-label">Available Doctors</label>
@@ -37,7 +37,7 @@
                             <option value="">Select a date first...</option>
                         </select>
                     </div>
-                    
+
                     <!-- Time Slots -->
                     <div class="mb-3">
                         <label class="form-label">Available Time Slots</label>
@@ -46,7 +46,13 @@
                         </div>
                         <input type="hidden" id="selectedTime">
                     </div>
-                    
+                    <div class="mb-3">
+                        <label class="form-label">Follow-up Appointment (Optional)</label>
+                        <input type="number" class="form-control" id="followUpAppointment"
+                            placeholder="Enter appointment ID to follow up...">
+                        <small class="text-muted">Leave empty if this is an initial visit</small>
+                    </div>
+
                     <button type="submit" class="btn btn-primary" id="bookBtn" disabled>Book Appointment</button>
                     <a href="{{ url_for('staff.dashboard') }}" class="btn btn-secondary">Cancel</a>
                 </form>
@@ -104,201 +110,202 @@
 
 {% block scripts %}
 <script>
-$(document).ready(function() {
-    var searchTimeout;
-    
-    // Set default date to today
-    var today = new Date().toISOString().split('T')[0];
-    $('#appointmentDate').val(today);
-    
-    // Load today's appointments
-    loadTodayAppointments();
-    
-    // Patient search with suggestions
-    $('#patientSearch').on('keyup', function() {
-        clearTimeout(searchTimeout);
-        var query = $(this).val().trim();
-        if (query.length < 2) {
-            $('#patientSuggestions').empty();
-            return;
-        }
-        searchTimeout = setTimeout(function() {
-            searchPatients(query);
-        }, 300);
-    });
-    
-    // Date change - reload doctors
-    $('#appointmentDate').on('change', function() {
-        loadAvailableDoctors();
-        $('#timeSlotsContainer').html('<p class="text-muted">Select a doctor to see available slots</p>');
-        $('#selectedTime').val('');
-        $('#bookBtn').prop('disabled', true);
-    });
-    
-    // Doctor change - load time slots
-    $('#doctorId').on('change', function() {
-        var doctorId = $(this).val();
-        if (doctorId) {
-            loadTimeSlots(doctorId);
-        } else {
+    $(document).ready(function () {
+        var searchTimeout;
+
+        // Set default date to today
+        var today = new Date().toISOString().split('T')[0];
+        $('#appointmentDate').val(today);
+
+        // Load today's appointments
+        loadTodayAppointments();
+
+        // Patient search with suggestions
+        $('#patientSearch').on('keyup', function () {
+            clearTimeout(searchTimeout);
+            var query = $(this).val().trim();
+            if (query.length < 2) {
+                $('#patientSuggestions').empty();
+                return;
+            }
+            searchTimeout = setTimeout(function () {
+                searchPatients(query);
+            }, 300);
+        });
+
+        // Date change - reload doctors
+        $('#appointmentDate').on('change', function () {
+            loadAvailableDoctors();
             $('#timeSlotsContainer').html('<p class="text-muted">Select a doctor to see available slots</p>');
             $('#selectedTime').val('');
             $('#bookBtn').prop('disabled', true);
-        }
-    });
-    
-    // Load initial doctors
-    loadAvailableDoctors();
-    
-    // Form submission
-    $('#appointmentForm').on('submit', function(e) {
-        e.preventDefault();
-        bookAppointment();
-    });
-    
-    // Status update
-    $('#updateStatusBtn').on('click', function() {
-        updateAppointmentStatus();
-    });
-});
+        });
 
-function searchPatients(query) {
-    $.ajax({
-        url: '/staff/api/patients/search?q=' + encodeURIComponent(query),
-        method: 'GET',
-        success: function(response) {
-            var container = $('#patientSuggestions');
-            container.empty();
-            
-            if (response.success && response.data && response.data.length > 0) {
-                $.each(response.data, function(i, patient) {
-                    var displayName = patient.firstname + ' ' + patient.lastname;
-                    var info = patient.nationalcode;
-                    if (patient.phonenumber) {
-                        info += ' | ' + patient.phonenumber;
-                    }
-                    container.append(
-                        '<a href="#" class="list-group-item list-group-item-action" ' +
-                        'onclick="selectPatient(' + patient.pid + ', \'' + displayName + '\')">' +
-                        '<strong>' + displayName + '</strong><br>' +
-                        '<small class="text-muted">' + info + '</small>' +
-                        '</a>'
-                    );
-                });
+        // Doctor change - load time slots
+        $('#doctorId').on('change', function () {
+            var doctorId = $(this).val();
+            if (doctorId) {
+                loadTimeSlots(doctorId);
             } else {
-                container.append('<span class="text-muted p-2">No patients found</span>');
-            }
-        },
-        error: function(xhr) {
-            console.error('Search error:', xhr);
-            $('#patientSuggestions').html('<span class="text-danger p-2">Error searching patients</span>');
-        }
-    });
-}
-
-function selectPatient(id, name) {
-    $('#patientId').val(id);
-    $('#patientSearch').val(name);
-    $('#patientSuggestions').empty();
-}
-
-function loadAvailableDoctors() {
-    var date = $('#appointmentDate').val();
-    if (!date) return;
-    
-    $('#doctorId').html('<option value="">Loading doctors...</option>');
-    
-    $.ajax({
-        url: '/staff/api/doctors/available?date=' + date,
-        method: 'GET',
-        success: function(response) {
-            var select = $('#doctorId');
-            select.html('<option value="">Select Doctor...</option>');
-            
-            if (response.success && response.data && response.data.length > 0) {
-                $.each(response.data, function(i, doctor) {
-                    // var label = doctor.name + ' (' + doctor.specialization + ') - ' + 
-                    //            doctor.available_count + ' slots available';
-                    var label = doctor.name + ' (' + ') - ' + 
-                               doctor.available_count + ' slots available';
-                    select.append('<option value="' + doctor.id + '">' + label + '</option>');
-                });
-            } else {
-                select.append('<option value="">No doctors on shift for this date</option>');
-            }
-        },
-        error: function() {
-            $('#doctorId').html('<option value="">Error loading doctors</option>');
-        }
-    });
-}
-
-function loadTimeSlots(doctorId) {
-    var date = $('#appointmentDate').val();
-    if (!date || !doctorId) return;
-    
-    var container = $('#timeSlotsContainer');
-    container.html('<p class="text-muted">Loading time slots...</p>');
-    $('#bookBtn').prop('disabled', true);
-    
-    $.ajax({
-        url: '/staff/api/doctors/' + doctorId + '/slots?date=' + date,
-        method: 'GET',
-        success: function(response) {
-            container.empty();
-            
-            if (response.success && response.data && response.data.length > 0) {
-                var availableCount = 0;
-                $.each(response.data, function(i, slot) {
-                    if (slot.available) {
-                        availableCount++;
-                        container.append(
-                            '<button type="button" class="btn btn-outline-success time-slot" ' +
-                            'data-time="' + slot.time + '" onclick="selectTimeSlot(this, \'' + slot.time + '\')">' +
-                            slot.display +
-                            '</button>'
-                        );
-                    } else {
-                        container.append(
-                            '<button type="button" class="btn btn-outline-secondary time-slot" disabled>' +
-                            slot.display + ' ❌' +
-                            '</button>'
-                        );
-                    }
-                });
-                
-                if (availableCount === 0) {
-                    container.html('<p class="text-danger">No available slots for this doctor on this date</p>');
-                    $('#bookBtn').prop('disabled', true);
-                } else {
-                    $('#bookBtn').prop('disabled', true);
-                    container.prepend('<p class="text-muted small">Click on a green slot to select it</p>');
-                }
-            } else {
-                container.html('<p class="text-danger">No slots available for this doctor</p>');
+                $('#timeSlotsContainer').html('<p class="text-muted">Select a doctor to see available slots</p>');
+                $('#selectedTime').val('');
                 $('#bookBtn').prop('disabled', true);
             }
-        },
-        error: function() {
-            container.html('<p class="text-danger">Error loading time slots</p>');
-            $('#bookBtn').prop('disabled', true);
-        }
+        });
+
+        // Load initial doctors
+        loadAvailableDoctors();
+
+        // Form submission
+        $('#appointmentForm').on('submit', function (e) {
+            e.preventDefault();
+            bookAppointment();
+        });
+
+        // Status update
+        $('#updateStatusBtn').on('click', function () {
+            updateAppointmentStatus();
+        });
     });
-}
 
-function selectTimeSlot(element, time) {
-    $('.time-slot').removeClass('btn-success active').addClass('btn-outline-success');
-    $(element).removeClass('btn-outline-success').addClass('btn-success active');
-    $('#selectedTime').val(time);
-    $('#bookBtn').prop('disabled', false);
-}
+    function searchPatients(query) {
+        $.ajax({
+            url: '/staff/api/patients/search?q=' + encodeURIComponent(query),
+            method: 'GET',
+            success: function (response) {
+                var container = $('#patientSuggestions');
+                container.empty();
 
-function bookAppointment() {
+                if (response.success && response.data && response.data.length > 0) {
+                    $.each(response.data, function (i, patient) {
+                        var displayName = patient.firstname + ' ' + patient.lastname;
+                        var info = patient.nationalcode;
+                        if (patient.phonenumber) {
+                            info += ' | ' + patient.phonenumber;
+                        }
+                        container.append(
+                            '<a href="#" class="list-group-item list-group-item-action" ' +
+                            'onclick="selectPatient(' + patient.pid + ', \'' + displayName + '\')">' +
+                            '<strong>' + displayName + '</strong><br>' +
+                            '<small class="text-muted">' + info + '</small>' +
+                            '</a>'
+                        );
+                    });
+                } else {
+                    container.append('<span class="text-muted p-2">No patients found</span>');
+                }
+            },
+            error: function (xhr) {
+                console.error('Search error:', xhr);
+                $('#patientSuggestions').html('<span class="text-danger p-2">Error searching patients</span>');
+            }
+        });
+    }
+
+    function selectPatient(id, name) {
+        $('#patientId').val(id);
+        $('#patientSearch').val(name);
+        $('#patientSuggestions').empty();
+    }
+
+    function loadAvailableDoctors() {
+        var date = $('#appointmentDate').val();
+        if (!date) return;
+
+        $('#doctorId').html('<option value="">Loading doctors...</option>');
+
+        $.ajax({
+            url: '/staff/api/doctors/available?date=' + date,
+            method: 'GET',
+            success: function (response) {
+                var select = $('#doctorId');
+                select.html('<option value="">Select Doctor...</option>');
+
+                if (response.success && response.data && response.data.length > 0) {
+                    $.each(response.data, function (i, doctor) {
+                        // var label = doctor.name + ' (' + doctor.specialization + ') - ' + 
+                        //            doctor.available_count + ' slots available';
+                        var label = doctor.name + ' (' + ') - ' +
+                            doctor.available_count + ' slots available';
+                        select.append('<option value="' + doctor.id + '">' + label + '</option>');
+                    });
+                } else {
+                    select.append('<option value="">No doctors on shift for this date</option>');
+                }
+            },
+            error: function () {
+                $('#doctorId').html('<option value="">Error loading doctors</option>');
+            }
+        });
+    }
+
+    function loadTimeSlots(doctorId) {
+        var date = $('#appointmentDate').val();
+        if (!date || !doctorId) return;
+
+        var container = $('#timeSlotsContainer');
+        container.html('<p class="text-muted">Loading time slots...</p>');
+        $('#bookBtn').prop('disabled', true);
+
+        $.ajax({
+            url: '/staff/api/doctors/' + doctorId + '/slots?date=' + date,
+            method: 'GET',
+            success: function (response) {
+                container.empty();
+
+                if (response.success && response.data && response.data.length > 0) {
+                    var availableCount = 0;
+                    $.each(response.data, function (i, slot) {
+                        if (slot.available) {
+                            availableCount++;
+                            container.append(
+                                '<button type="button" class="btn btn-outline-success time-slot" ' +
+                                'data-time="' + slot.time + '" onclick="selectTimeSlot(this, \'' + slot.time + '\')">' +
+                                slot.display +
+                                '</button>'
+                            );
+                        } else {
+                            container.append(
+                                '<button type="button" class="btn btn-outline-secondary time-slot" disabled>' +
+                                slot.display + ' ❌' +
+                                '</button>'
+                            );
+                        }
+                    });
+
+                    if (availableCount === 0) {
+                        container.html('<p class="text-danger">No available slots for this doctor on this date</p>');
+                        $('#bookBtn').prop('disabled', true);
+                    } else {
+                        $('#bookBtn').prop('disabled', true);
+                        container.prepend('<p class="text-muted small">Click on a green slot to select it</p>');
+                    }
+                } else {
+                    container.html('<p class="text-danger">No slots available for this doctor</p>');
+                    $('#bookBtn').prop('disabled', true);
+                }
+            },
+            error: function () {
+                container.html('<p class="text-danger">Error loading time slots</p>');
+                $('#bookBtn').prop('disabled', true);
+            }
+        });
+    }
+
+    function selectTimeSlot(element, time) {
+        $('.time-slot').removeClass('btn-success active').addClass('btn-outline-success');
+        $(element).removeClass('btn-outline-success').addClass('btn-success active');
+        $('#selectedTime').val(time);
+        $('#bookBtn').prop('disabled', false);
+    }
+
+    function bookAppointment() {
     var data = {
         patient_id: $('#patientId').val(),
         doctor_id: $('#doctorId').val(),
         date: $('#appointmentDate').val(),
-        time: $('#selectedTime').val()
+        time: $('#selectedTime').val(),
+        follow_up_id: $('#followUpAppointment').val() || null
     };
     
     if (!data.patient_id) {
@@ -352,16 +359,16 @@ function bookAppointment() {
     });
 }
 
-function loadTodayAppointments() {
-    $.ajax({
-        url: '/staff/api/appointments/today',
-        method: 'GET',
-        success: function(response) {
-            var container = $('#today-appointments-list');
-            
-            if (response.success && response.data && response.data.length > 0) {
-                var html = '<div class="table-responsive"><table class="table table-hover">';
-                html += `
+    function loadTodayAppointments() {
+        $.ajax({
+            url: '/staff/api/appointments/today',
+            method: 'GET',
+            success: function (response) {
+                var container = $('#today-appointments-list');
+
+                if (response.success && response.data && response.data.length > 0) {
+                    var html = '<div class="table-responsive"><table class="table table-hover">';
+                    html += `
                     <thead>
                         <tr>
                             <th>Time</th>
@@ -373,18 +380,18 @@ function loadTodayAppointments() {
                     </thead>
                     <tbody>
                 `;
-                $.each(response.data, function(i, apt) {
-                    var statusColors = {
-                        'Scheduled': 'info',
-                        'Completed': 'success',
-                        'Cancelled': 'danger',
-                        'No Show': 'warning',
-                        'Reserved': 'primary',
-                        'Not Reserved': 'secondary'
-                    };
-                    var color = statusColors[apt.status] || 'secondary';
-                    
-                    html += `
+                    $.each(response.data, function (i, apt) {
+                        var statusColors = {
+                            'Scheduled': 'info',
+                            'Completed': 'success',
+                            'Cancelled': 'danger',
+                            'No Show': 'warning',
+                            'Reserved': 'primary',
+                            'Not Reserved': 'secondary'
+                        };
+                        var color = statusColors[apt.status] || 'secondary';
+
+                        html += `
                         <tr>
                             <td><strong>${apt.time}</strong></td>
                             <td>${apt.patient_name}</td>
@@ -398,59 +405,59 @@ function loadTodayAppointments() {
                             </td>
                         </tr>
                     `;
-                });
-                html += '</tbody></table></div>';
-                container.html(html);
-            } else {
-                container.html('<p class="text-muted">No appointments today</p>');
+                    });
+                    html += '</tbody></table></div>';
+                    container.html(html);
+                } else {
+                    container.html('<p class="text-muted">No appointments today</p>');
+                }
+            },
+            error: function () {
+                $('#today-appointments-list').html('<p class="text-danger">Error loading appointments</p>');
             }
-        },
-        error: function() {
-            $('#today-appointments-list').html('<p class="text-danger">Error loading appointments</p>');
-        }
-    });
-}
-
-function openStatusModal(appointmentId, patientName, time, currentStatus) {
-    $('#statusPatientName').text(patientName);
-    $('#statusTime').text(time);
-    $('#statusSelect').val(currentStatus);
-    $('#statusAppointmentId').val(appointmentId);
-    $('#statusModal').modal('show');
-}
-
-function updateAppointmentStatus() {
-    var appointmentId = $('#statusAppointmentId').val();
-    var status = $('#statusSelect').val();
-    
-    if (!appointmentId) {
-        alert('Error: No appointment selected');
-        return;
+        });
     }
-    
-    $.ajax({
-        url: '/staff/api/appointments/' + appointmentId + '/status',
-        method: 'PUT',
-        contentType: 'application/json',
-        data: JSON.stringify({ status: status }),
-        success: function(response) {
-            if (response.success) {
-                $('#statusModal').modal('hide');
-                alert('✅ ' + response.message);
-                loadTodayAppointments();
-            } else {
-                alert('❌ Error: ' + response.error);
-            }
-        },
-        error: function(xhr) {
-            try {
-                var response = JSON.parse(xhr.responseText);
-                alert('❌ Error: ' + response.error);
-            } catch(e) {
-                alert('❌ Error: ' + xhr.statusText);
-            }
+
+    function openStatusModal(appointmentId, patientName, time, currentStatus) {
+        $('#statusPatientName').text(patientName);
+        $('#statusTime').text(time);
+        $('#statusSelect').val(currentStatus);
+        $('#statusAppointmentId').val(appointmentId);
+        $('#statusModal').modal('show');
+    }
+
+    function updateAppointmentStatus() {
+        var appointmentId = $('#statusAppointmentId').val();
+        var status = $('#statusSelect').val();
+
+        if (!appointmentId) {
+            alert('Error: No appointment selected');
+            return;
         }
-    });
-}
+
+        $.ajax({
+            url: '/staff/api/appointments/' + appointmentId + '/status',
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({ status: status }),
+            success: function (response) {
+                if (response.success) {
+                    $('#statusModal').modal('hide');
+                    alert('✅ ' + response.message);
+                    loadTodayAppointments();
+                } else {
+                    alert('❌ Error: ' + response.error);
+                }
+            },
+            error: function (xhr) {
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    alert('❌ Error: ' + response.error);
+                } catch (e) {
+                    alert('❌ Error: ' + xhr.statusText);
+                }
+            }
+        });
+    }
 </script>
 {% endblock %}

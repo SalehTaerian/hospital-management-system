@@ -127,10 +127,10 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'patient.medical_records' %}active{% endif %}"
-                            href="{{ url_for('patient.medical_records') }}">
-                            <i class="bi bi-file-medical"></i> Medical Records
-                        </a>
+                    <a class="nav-link {% if request.endpoint == 'patient.medical_records' %}active{% endif %}"
+                        href="{{ url_for('patient.medical_records') }}">
+                        <i class="bi bi-file-medical"></i> Medical Records
+                    </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'request.patient_requests' %}active{% endif %}"
@@ -251,14 +251,8 @@
                     </li>
                     {% endif %}
                     {% endif %}
-
-                    {% elif session.get('user_role') == 'admin' %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="/admin">
-                            <i class="bi bi-shield-lock"></i> Admin Panel
-                        </a>
-                    </li>
                     {% endif %}
+
                     {% if session.get('user_role') == 'doctor' %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'request.doctor_requests' %}active{% endif %}"
@@ -267,8 +261,17 @@
                         </a>
                     </li>
                     {% endif %}
+                    {% if session.get('user_role') in ['officeStaff', 'doctor'] %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('analytics.') %}active{% endif %}"
+                            href="{{ url_for('analytics.index') }}">
+                            <i class="bi bi-graph-up"></i> Analytics
+                        </a>
+                    </li>
                 </ul>
 
+
+                {% endif %}
                 <!-- Right Side - User Menu -->
                 <ul class="navbar-nav ms-auto">
                     {% if session.get('user_role') %}

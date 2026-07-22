@@ -21,8 +21,8 @@ def get_patient_upcoming_appointments(patient_id):
         FROM appointment a
         JOIN doctor d ON a.doctorID = d.employeeID
         JOIN employee e ON d.employeeID = e.employeeID
-        JOIN doctorSpecialization ds ON d.employeeID = ds.docID JOIN specializationFields s 
-        ON s.specID = ds.specID
+        JOIN doctorSpecialization ds ON d.employeeID = ds.docID
+        JOIN specializationFields s ON s.specID = ds.specID
         JOIN medicalRecord mr ON a.mID = mr.mID
         LEFT JOIN invoice i ON a.appoID = i.appoID
         WHERE mr.pID = %s

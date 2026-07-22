@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Disease Details{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body py-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0"><i class="bi bi-heart-pulse"></i> Disease Details</h2>
+                        <p class="mb-0 mt-2" id="diseaseTitle">Loading...</p>
+                    </div>
+                    <a href="{{ url_for('analytics.diseases') }}" class="btn btn-light">
+                        <i class="bi bi-arrow-left"></i> Back
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<input type="hidden" id="diseaseId" value="{{ disease_id }}">
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-info">
+            <div class="card-body text-center">
+                <h3 id="totalDiagnoses">-</h3>
+                <p class="mb-0">Total Diagnoses</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-success">
+            <div class="card-body text-center">
+                <h3 id="totalPatients">-</h3>
+                <p class="mb-0">Patients</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-warning">
+            <div class="card-body text-center">
+                <h3 id="totalAppointments">-</h3>
+                <p class="mb-0">Appointments</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-pills"></i> Medicine Effectiveness for this Disease</h5>
+            </div>
+            <div class="card-body" id="medicineContainer">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p>Loading medicine effectiveness data...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    var diseaseId = parseInt($('#diseaseId').val()) || 0;
+    loadDiseaseDetails(diseaseId);
+    loadMedicineEffectiveness(diseaseId);
+});
+
+function loadDiseaseDetails(diseaseId) {
+    $.ajax({
+        url: '/analytics/api/disease/' + diseaseId + '/details',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var d = response.data;
+                $('#diseaseTitle').text(d.diseasename + ' (' + d.code + ')');
+                $('#totalDiagnoses').text(d.total_diagnoses || 0);
+                $('#totalPatients').text(d.total_patients || 0);
+                $('#totalAppointments').text(d.total_appointments || 0);
+            }
+        }
+    });
+}
+
+function loadMedicineEffectiveness(diseaseId) {
+    $.ajax({
+        url: '/analytics/api/disease/medicines?disease_id=' + diseaseId,
+        method: 'GET',
+        success: function(response) {
+            var container = $('#medicineContainer');
+            if (response.success && response.data && response.data.length > 0) {
+                var html = `
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Medicine</th>
+                                    <th>Prescriptions</th>
+                                    <th>Feedback Count</th>
+                                    <th>Effectiveness</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                $.each(response.data, function(i, m) {
+                    var effect = m.avg_effectiveness || 0;
+                    var color = effect >= 70 ? 'success' : effect >= 50 ? 'warning' : 'danger';
+                    var displayEffect = effect > 0 ? parseFloat(effect).toFixed(1) + '%' : 'No feedback';
+                    
+                    html += `
+                        <tr>
+                            <td>${i + 1}</td>
+                            <td><strong>${m.medicinename}</strong></td>
+                            <td>${m.prescription_count || 0}</td>
+                            <td>${m.feedback_count || 0}</td>
+                            <td>
+                                ${effect > 0 ? 
+                                    `<div class="progress" style="width:150px;">
+                                        <div class="progress-bar bg-${color}" 
+                                             style="width:${effect}%;">${parseFloat(effect).toFixed(0)}%</div>
+                                    </div>` : 
+                                    '<span class="text-muted">No feedback</span>'
+                                }
+                            </td>
+                        </tr>
+                    `;
+                });
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                container.html(html);
+            } else {
+                container.html('<p class="text-muted">No medicines prescribed for this disease</p>');
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

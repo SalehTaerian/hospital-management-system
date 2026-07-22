@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body py-4">
+                <h2 class="mb-0"><i class="bi bi-graph-up"></i> Analytics Dashboard</h2>
+                <p class="mb-0 mt-2">Disease abundance and medicine effectiveness analysis</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4" id="statsContainer">
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body text-center">
+                <h3 id="totalPatients">-</h3>
+                <p class="mb-0">Total Patients</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body text-center">
+                <h3 id="totalDiseases">-</h3>
+                <p class="mb-0">Diseases</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body text-center">
+                <h3 id="totalDiagnoses">-</h3>
+                <p class="mb-0">Diagnoses</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-danger">
+            <div class="card-body text-center">
+                <h3 id="totalPrescriptions">-</h3>
+                <p class="mb-0">Prescriptions</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Top 10 Most Common Diseases</h5>
+            </div>
+            <div class="card-body" id="topDiseasesContainer">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p>Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-pills"></i> Most Effective Medicines</h5>
+            </div>
+            <div class="card-body" id="medicineSummaryContainer">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p>Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> All Diseases with Abundance</h5>
+                <a href="{{ url_for('analytics.diseases') }}" class="btn btn-sm btn-primary float-end">
+                    View Full List
+                </a>
+            </div>
+            <div class="card-body" id="diseaseAbundanceContainer">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p>Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    loadStats();
+    loadTopDiseases();
+    loadMedicineSummary();
+    loadDiseaseAbundance();
+});
+
+function loadStats() {
+    $.ajax({
+        url: '/analytics/api/stats',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                $('#totalPatients').text(response.data.total_patients || 0);
+                $('#totalDiseases').text(response.data.total_diseases || 0);
+                $('#totalDiagnoses').text(response.data.total_diagnoses || 0);
+                $('#totalPrescriptions').text(response.data.total_prescriptions || 0);
+            }
+        }
+    });
+}
+
+function loadTopDiseases() {
+    $.ajax({
+        url: '/analytics/api/top/diseases?limit=10',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#topDiseasesContainer');
+            if (response.success && response.data && response.data.length > 0) {
+                var maxCount = response.data[0].diagnosis_count || 1;
+                var html = '<ul class="list-group">';
+                $.each(response.data, function(i, d) {
+                    var percentage = ((d.diagnosis_count / maxCount) * 100).toFixed(0);
+                    var color = i === 0 ? 'danger' : i === 1 ? 'warning' : i === 2 ? 'info' : 'secondary';
+                    html += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <a href="/analytics/disease/${d.icdid}" class="text-decoration-none">
+                                    <strong>${d.diseasename || d.code}</strong>
+                                </a>
+                                <span class="badge bg-${color} ms-2">${d.diagnosis_count}</span>
+                            </div>
+                            <div class="progress flex-grow-1 mx-3" style="height:8px;">
+                                <div class="progress-bar bg-${color}" style="width:${percentage}%;"></div>
+                            </div>
+                            <span class="badge bg-secondary">${percentage}%</span>
+                        </li>
+                    `;
+                });
+                html += '</ul>';
+                container.html(html);
+            } else {
+                container.html('<p class="text-muted">No disease data available</p>');
+            }
+        }
+    });
+}
+
+function loadMedicineSummary() {
+    $.ajax({
+        url: '/analytics/api/medicine/summary',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#medicineSummaryContainer');
+            if (response.success && response.data && response.data.length > 0) {
+                var html = '<ul class="list-group">';
+                $.each(response.data.slice(0, 10), function(i, m) {
+                    var effect = m.avg_effectiveness || 0;
+                    var color = effect >= 70 ? 'success' : effect >= 50 ? 'warning' : 'danger';
+                    html += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>${m.medicinename}</strong>
+                                <span class="badge bg-secondary ms-2">${m.total_prescriptions} prescriptions</span>
+                            </div>
+                            <div>
+                                <span class="badge bg-${color} fs-6">${parseFloat(effect).toFixed(1)}%</span>
+                            </div>
+                        </li>
+                    `;
+                });
+                html += '</ul>';
+                container.html(html);
+            } else {
+                container.html('<p class="text-muted">No medicine effectiveness data available</p>');
+            }
+        }
+    });
+}
+
+function loadDiseaseAbundance() {
+    $.ajax({
+        url: '/analytics/api/disease/abundance',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#diseaseAbundanceContainer');
+            if (response.success && response.data && response.data.length > 0) {
+                var html = `
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Code</th>
+                                    <th>Disease Name</th>
+                                    <th>Diagnoses</th>
+                                    <th>Patients</th>
+                                    <th>Appointments</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                $.each(response.data.slice(0, 20), function(i, d) {
+                    html += `
+                        <tr>
+                            <td>${i + 1}</td>
+                            <td><strong>${d.code}</strong></td>
+                            <td>${d.diseasename}</td>
+                            <td><span class="badge bg-primary">${d.diagnosis_count || 0}</span></td>
+                            <td>${d.patient_count || 0}</td>
+                            <td>${d.appointment_count || 0}</td>
+                            <td>
+                                <a href="/analytics/disease/${d.icdid}" class="btn btn-sm btn-info">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                    `;
+                });
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                container.html(html);
+            } else {
+                container.html('<p class="text-muted">No disease data available</p>');
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

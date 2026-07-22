@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block title %}Staff - Appointments{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body py-4">
+                <h2 class="mb-0"><i class="bi bi-calendar-plus"></i> Book Appointment</h2>
+                <p class="mb-0 mt-2">Search for a patient and book an appointment with follow-up tracking</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-body">
+                <form id="appointmentForm">
+                    <div class="mb-3">
+                        <label class="form-label">Patient</label>
+                        <input type="text" class="form-control" id="patientSearch" placeholder="Search by name or national code...">
+                        <input type="hidden" id="patientId">
+                        <div id="patientSuggestions" class="list-group mt-1"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Doctor</label>
+                        <select class="form-control" id="doctorId" required>
+                            <option value="">Select Doctor...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Date</label>
+                        <input type="date" class="form-control" id="appointmentDate" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Time</label>
+                        <select class="form-control" id="appointmentTime" required>
+                            <option value="">Select Time...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Follow-up</label>
+                        <select class="form-control" id="followUpSelect">
+                            <option value="">No follow-up (Initial Visit)</option>
+                        </select>
+                        <small class="text-muted">Select an existing appointment to make this a follow-up</small>
+                    </div>
+                    
+                    <div id="formMessage" class="alert d-none"></div>
+                    
+                    <button type="submit" class="btn btn-primary">Book Appointment</button>
+                    <a href="{{ url_for('staff.dashboard') }}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Today's Appointments -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header">
+                <h5><i class="bi bi-calendar-event"></i> Today's Appointments</h5>
+            </div>
+            <div class="card-body" id="today-appointments-list">
+                <p class="text-muted">Loading...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    var searchTimeout;
+    var patientId = null;
+    
+    // Set default date to today
+    var today = new Date().toISOString().split('T')[0];
+    $('#appointmentDate').val(today);
+    loadTimeSlots();
+    loadDoctors();
+    loadTodayAppointments();
+    
+    // Patient search
+    $('#patientSearch').on('keyup', function() {
+        clearTimeout(searchTimeout);
+        var query = $(this).val().trim();
+        if (query.length < 2) {
+            $('#patientSuggestions').empty();
+            return;
+        }
+        searchTimeout = setTimeout(function() {
+            searchPatients(query);
+        }, 300);
+    });
+    
+    // Date change - reload time slots
+    $('#appointmentDate').on('change', function() {
+        loadTimeSlots();
+    });
+    
+    // Patient selection - load follow-up options
+    $('#patientId').on('change', function() {
+        loadFollowUpOptions();
+    });
+    
+    // Form submission
+    $('#appointmentForm').on('submit', function(e) {
+        e.preventDefault();
+        bookAppointment();
+    });
+});
+
+function searchPatients(query) {
+    $.ajax({
+        url: '/staff/api/patients/search?q=' + encodeURIComponent(query),
+        method: 'GET',
+        success: function(response) {
+            var container = $('#patientSuggestions');
+            container.empty();
+            if (response.success && response.data && response.data.length > 0) {
+                $.each(response.data, function(i, patient) {
+                    container.append(
+                        '<a href="#" class="list-group-item list-group-item-action" ' +
+                        'onclick="selectPatient(' + patient.pid + ', \'' + patient.firstname + ' ' + patient.lastname + '\')">' +
+                        '<strong>' + patient.firstname + ' ' + patient.lastname + '</strong><br>' +
+                        '<small class="text-muted">' + patient.nationalcode + ' | ' + (patient.phonenumber || 'N/A') + '</small>' +
+                        '</a>'
+                    );
+                });
+            }
+        }
+    });
+}
+
+function selectPatient(id, name) {
+    $('#patientId').val(id);
+    $('#patientSearch').val(name);
+    $('#patientSuggestions').empty();
+    loadFollowUpOptions();
+}
+
+function loadDoctors() {
+    $.ajax({
+        url: '/staff/api/doctors',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var select = $('#doctorId');
+                $.each(response.data, function(i, doctor) {
+                    select.append('<option value="' + doctor.id + '">' + doctor.name + ' - ' + doctor.specialization + '</option>');
+                });
+            }
+        }
+    });
+}
+
+function loadTimeSlots() {
+    var select = $('#appointmentTime');
+    select.empty();
+    select.append('<option value="">Select Time...</option>');
+    
+    var times = [
+        '09:00:00', '09:30:00', '10:00:00', '10:30:00',
+        '11:00:00', '11:30:00', '12:00:00', '12:30:00',
+        '13:00:00', '13:30:00', '14:00:00', '14:30:00',
+        '15:00:00', '15:30:00', '16:00:00', '16:30:00',
+        '17:00:00'
+    ];
+    
+    $.each(times, function(i, t) {
+        var display = t.substring(0, 5);
+        var hour = parseInt(t.substring(0, 2));
+        var ampm = hour >= 12 ? 'PM' : 'AM';
+        if (hour > 12) hour -= 12;
+        if (hour === 0) hour = 12;
+        display = hour + ':' + t.substring(3, 5) + ' ' + ampm;
+        select.append('<option value="' + t + '">' + display + '</option>');
+    });
+}
+
+function loadFollowUpOptions() {
+    var patientId = $('#patientId').val();
+    var select = $('#followUpSelect');
+    select.empty();
+    select.append('<option value="">No follow-up (Initial Visit)</option>');
+    
+    if (!patientId) return;
+    
+    $.ajax({
+        url: '/appointments/api/patient/appointments/available?patient_id=' + patientId,
+        method: 'GET',
+        success: function(response) {
+            if (response.success && response.data && response.data.length > 0) {
+                $.each(response.data, function(i, apt) {
+                    select.append(
+                        '<option value="' + apt.followid + '">' +
+                        'Appointment #' + apt.appoid + ' - ' + apt.date + ' (' + apt.doctor_name + ')' +
+                        '</option>'
+                    );
+                });
+            }
+        }
+    });
+}
+
+function loadTodayAppointments() {
+    $.ajax({
+        url: '/staff/api/appointments/today',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#today-appointments-list');
+            if (response.success && response.data && response.data.length > 0) {
+                var html = '<div class="table-responsive"><table class="table table-hover">';
+                html += `
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Patient</th>
+                            <th>Doctor</th>
+                            <th>Status</th>
+                            <th>Follow-up</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                `;
+                $.each(response.data, function(i, apt) {
+                    var statusColors = {
+                        'Scheduled': 'info',
+                        'Completed': 'success',
+                        'Cancelled': 'danger',
+                        'No Show': 'warning',
+                        'Reserved': 'primary',
+                        'Not Reserved': 'secondary'
+                    };
+                    var color = statusColors[apt.status] || 'secondary';
+                    
+                    html += `
+                        <tr>
+                            <td><strong>${apt.time}</strong></td>
+                            <td>${apt.patient_name}</td>
+                            <td>${apt.doctor_name}</td>
+                            <td><span class="badge bg-${color}">${apt.status}</span></td>
+                            <td>
+                                ${apt.followid ? 
+                                    `<span class="badge bg-warning text-dark">Follow-up #${apt.followid}</span>` : 
+                                    `<span class="badge bg-secondary">Initial</span>`
+                                }
+                            </td>
+                        </tr>
+                    `;
+                });
+                html += '</tbody></table></div>';
+                container.html(html);
+            } else {
+                container.html('<p class="text-muted">No appointments today</p>');
+            }
+        }
+    });
+}
+
+function bookAppointment() {
+    var data = {
+        patient_id: $('#patientId').val(),
+        doctor_id: $('#doctorId').val(),
+        date: $('#appointmentDate').val(),
+        time: $('#appointmentTime').val(),
+        followID: $('#followUpSelect').val() || null
+    };
+    
+    if (!data.patient_id) {
+        showMessage('Please select a patient', 'danger');
+        return;
+    }
+    if (!data.doctor_id) {
+        showMessage('Please select a doctor', 'danger');
+        return;
+    }
+    if (!data.date) {
+        showMessage('Please select a date', 'danger');
+        return;
+    }
+    if (!data.time) {
+        showMessage('Please select a time', 'danger');
+        return;
+    }
+    
+    $.ajax({
+        url: '/staff/api/appointments',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function(response) {
+            if (response.success) {
+                showMessage('✅ Appointment booked successfully!', 'success');
+                setTimeout(function() {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showMessage('❌ Error: ' + response.error, 'danger');
+            }
+        },
+        error: function(xhr) {
+            try {
+                var response = JSON.parse(xhr.responseText);
+                showMessage('❌ Error: ' + response.error, 'danger');
+            } catch(e) {
+                showMessage('❌ Error: ' + xhr.statusText, 'danger');
+            }
+        }
+    });
+}
+
+function showMessage(message, type) {
+    var msg = $('#formMessage');
+    msg.removeClass('d-none alert-success alert-danger')
+       .addClass('alert-' + type)
+       .text(message);
+}
+</script>
+{% endblock %}

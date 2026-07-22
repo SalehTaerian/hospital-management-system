@@ -10,10 +10,12 @@ def get_patient_requests(patient_id):
             r.status,
             r.isPatientConfirmed,
             r.cost,
+            r.createdAt,
             r.medID,
             r.testID,
             r.departID,
             e.firstName || ' ' || e.lastName AS doctor_name,
+            d.specialization,
             dep.name AS department_name,
             icdm.medicineName,
             icdt.testName,
@@ -30,6 +32,7 @@ def get_patient_requests(patient_id):
         LEFT JOIN icdtCode icdt ON r.testID = icdt.icdtID
         JOIN medicalRecord mr ON r.mID = mr.mID
         WHERE mr.pID = %s
+        ORDER BY r.createdAt DESC
     """
     return DatabaseConnection.execute_query(
         query,
@@ -47,10 +50,12 @@ def get_patient_pending_requests(patient_id):
             r.status,
             r.isPatientConfirmed,
             r.cost,
+            r.createdAt,
             r.medID,
             r.testID,
             r.departID,
             e.firstName || ' ' || e.lastName AS doctor_name,
+            d.specialization,
             dep.name AS department_name,
             icdm.medicineName,
             icdt.testName,
@@ -69,6 +74,7 @@ def get_patient_pending_requests(patient_id):
         WHERE mr.pID = %s
         AND r.isPatientConfirmed = FALSE
         AND r.status != 'Cancelled'
+        ORDER BY r.createdAt DESC
     """
     return DatabaseConnection.execute_query(
         query,
@@ -86,12 +92,14 @@ def get_doctor_requests(doctor_id):
             r.status,
             r.isPatientConfirmed,
             r.cost,
+            r.createdAt,
             r.medID,
             r.testID,
             r.departID,
             dep.name AS department_name,
             p.firstName || ' ' || p.lastName AS patient_name,
             p.nationalCode,
+            p.pID as patient_id,
             icdm.medicineName,
             icdt.testName,
             CASE 
@@ -106,6 +114,7 @@ def get_doctor_requests(doctor_id):
         LEFT JOIN icdmCode icdm ON r.medID = icdm.icdmID
         LEFT JOIN icdtCode icdt ON r.testID = icdt.icdtID
         WHERE r.doctorID = %s
+        ORDER BY r.createdAt DESC
     """
     return DatabaseConnection.execute_query(
         query,
@@ -123,12 +132,33 @@ def get_request_by_id(req_id):
             r.status,
             r.isPatientConfirmed,
             r.cost,
+            r.createdAt,
             r.mID,
             r.doctorID,
             r.medID,
             r.testID,
-            r.departID
+            r.departID,
+            p.pID as patient_id,
+            p.firstName,
+            p.lastName,
+            p.nationalCode,
+            e.firstName || ' ' || e.lastName as doctor_name,
+            dep.name as department_name,
+            icdm.medicineName,
+            icdt.testName,
+            CASE 
+                WHEN r.medID IS NOT NULL THEN 'Medicine'
+                WHEN r.testID IS NOT NULL THEN 'Test'
+                ELSE 'Other'
+            END as request_type
         FROM request r
+        JOIN medicalRecord mr ON r.mID = mr.mID
+        JOIN patient p ON mr.pID = p.pID
+        JOIN doctor doc ON r.doctorID = doc.employeeID
+        JOIN employee e ON doc.employeeID = e.employeeID
+        LEFT JOIN department dep ON r.departID = dep.departID
+        LEFT JOIN icdmCode icdm ON r.medID = icdm.icdmID
+        LEFT JOIN icdtCode icdt ON r.testID = icdt.icdtID
         WHERE r.reqID = %s
     """
     return DatabaseConnection.execute_query(
@@ -137,6 +167,59 @@ def get_request_by_id(req_id):
         fetch_one=True,
         fetch_dict=True
     )
+
+def get_request_parameters(req_id):
+    query = """
+        SELECT 
+            pr.resultID,
+            pr.parameterValue,
+            pl.parameterName,
+            pl.min,
+            pl.max,
+            pl.average
+        FROM parameterResult pr
+        JOIN parameterList pl ON pr.parameterID = pl.parameterID
+        WHERE pr.reqID = %s
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        (req_id,),
+        fetch_all=True,
+        fetch_dict=True
+    )
+
+def add_parameter_result(data):
+    query = """
+        INSERT INTO parameterResult (reqID, parameterID, parameterValue)
+        VALUES (%s, %s, %s)
+        RETURNING resultID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (
+            data.get('reqID'),
+            data.get('parameterID'),
+            data.get('parameterValue')
+        ),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
+
+def update_request_status(req_id, status):
+    query = """
+        UPDATE request
+        SET status = %s
+        WHERE reqID = %s
+        RETURNING reqID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (status, req_id),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
 
 def create_medicine_request(data):
     query = """
@@ -276,8 +359,7 @@ def get_departments_list():
         fetch_all=True,
         fetch_dict=True
     )
-    
-    
+ 
 def medicine_conflict(medId):
     query = """
         SELECT i.medicineName
@@ -286,3 +368,18 @@ def medicine_conflict(medId):
     """
     results = DatabaseConnection.execute_query(query,(medId,) , fetch_all=True, fetch_dict=True)
     return results
+
+def update_request_with_results(req_id, status='Completed'):
+    query = """
+        UPDATE request
+        SET status = %s
+        WHERE reqID = %s
+        RETURNING reqID
+    """
+    result = DatabaseConnection.execute_query(
+        query,
+        (status, req_id),
+        fetch_one=True,
+        commit=True
+    )
+    return result[0] if result else None
