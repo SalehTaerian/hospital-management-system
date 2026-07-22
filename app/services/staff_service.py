@@ -218,3 +218,4 @@ def visits_per_hour_service():
 
 def visits_per_day_service():
     return visits_per_day()
+

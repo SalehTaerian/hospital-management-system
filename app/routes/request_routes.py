@@ -40,6 +40,20 @@ def view_request(req_id):
         return redirect('/staff-login')
     return render_template('doctor/request_detail.html', req_id=req_id)
 
+@request_bp.route('/api/medicine-conflict/<int:medId>', methods=['GET'])
+def api_medicine_conflict(medId):
+    if not doctor_login_required():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    try:
+        conflicts = medicine_conflict_service(medId)
+        return jsonify({
+            'success': True,
+            'data':conflicts
+        })
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+        
+
 @request_bp.route('/api/patient', methods=['GET'])
 def api_get_patient_requests():
     if not patient_login_required():

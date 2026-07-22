@@ -97,3 +97,7 @@ def get_tests_list_service():
 
 def get_departments_list_service():
     return get_departments_list()
+
+
+def medicine_conflict_service(medId):
+    return medicine_conflict(medId)
