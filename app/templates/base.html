@@ -127,10 +127,10 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'patient.medical_records' %}active{% endif %}"
-                            href="{{ url_for('patient.medical_records') }}">
-                            <i class="bi bi-file-medical"></i> Medical Records
-                        </a>
+                    <a class="nav-link {% if request.endpoint == 'patient.medical_records' %}active{% endif %}"
+                        href="{{ url_for('patient.medical_records') }}">
+                        <i class="bi bi-file-medical"></i> Medical Records
+                    </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'request.patient_requests' %}active{% endif %}"

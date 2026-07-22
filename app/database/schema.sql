@@ -283,11 +283,18 @@ CREATE TABLE IF NOT EXISTS warning (
 );
 
 
+CREATE TABLE IF NOT EXISTS followup (
+    followID SERIAL PRIMARY KEY,
+    progress DECIMAL(3,0)
+);
+
+
 CREATE TABLE IF NOT EXISTS appointment (
     appoID SERIAL PRIMARY KEY,
     mID INTEGER NOT NULL REFERENCES medicalRecord(mID) ON DELETE CASCADE,
     doctorID INTEGER NOT NULL REFERENCES doctor(employeeID),
     staffID INTEGER REFERENCES officeStaff(employeeID) ON DELETE CASCADE,
+    followID INTEGER REFERENCES followup(followID) ON DELETE CASCADE DEFAULT NULL,
     date DATE NOT NULL,
     time TIME NOT NULL,
     status VARCHAR(20),

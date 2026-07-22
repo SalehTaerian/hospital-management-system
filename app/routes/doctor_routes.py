@@ -94,6 +94,13 @@ def api_get_appointments():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     doctor_id = session.get('user_id')
     appointments = get_doctor_appointments_service(doctor_id)
+    
+    for apt in appointments:
+        if 'followid' not in apt and 'follow_id' in apt:
+            apt['followid'] = apt['follow_id']
+        elif 'followid' not in apt:
+            apt['followid'] = None
+    
     return jsonify({'success': True, 'data': appointments})
 
 @doctor_bp.route('/api/appointment/<int:appointment_id>', methods=['GET'])

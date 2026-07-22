@@ -148,24 +148,29 @@ def api_get_doctor_slots(doctor_id):
     return jsonify({"success": True, "data": slots})
 
 
-@staff_bp.route("/api/appointments", methods=["POST"])
+@staff_bp.route('/api/appointments', methods=['POST'])
 def api_create_appointment():
     # if not staff_login_required():
     #     return jsonify({'success': False, 'error': 'Unauthorized'}), 401
-
+    
     try:
         data = request.get_json()
-
+        
+        follow_up_id = data.get('follow_up_id')
+        if follow_up_id:
+            from app.database.queries.doctor_queries import get_appointment_by_id
+            appointment = get_appointment_by_id(follow_up_id)
+            if not appointment:
+                return jsonify({'success': False, 'error': 'Follow-up appointment not found'}), 400
+        
         appointment_id = create_appointment_service(data)
-        return jsonify(
-            {
-                "success": True,
-                "message": "Appointment created successfully",
-                "id": appointment_id,
-            }
-        )
+        return jsonify({
+            'success': True,
+            'message': 'Appointment created successfully',
+            'id': appointment_id
+        })
     except ValueError as e:
-        return jsonify({"success": False, "error": str(e)}), 400
+        return jsonify({'success': False, 'error': str(e)}), 400
 
 
 @staff_bp.route("/api/appointments/<int:appointment_id>/status", methods=["PUT"])

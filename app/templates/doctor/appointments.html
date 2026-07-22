@@ -8,7 +8,7 @@
         <div class="card bg-primary text-white shadow">
             <div class="card-body py-4">
                 <h2 class="mb-0"><i class="bi bi-calendar-check"></i> My Appointments</h2>
-                <p class="mb-0 mt-2">View all your appointments with patients</p>
+                <p class="mb-0 mt-2">View all your appointments organized by patient</p>
             </div>
         </div>
     </div>
@@ -17,8 +17,9 @@
 <div class="row mt-4">
     <div class="col-12">
         <div class="card shadow">
-            <div class="card-header bg-light">
-                <h5 class="mb-0"><i class="bi bi-list-ul"></i> All Appointments</h5>
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-diagram-3"></i> Appointments</h5>
+                <span class="badge bg-secondary" id="appointmentCount">0 appointments</span>
             </div>
             <div class="card-body">
                 <div id="appointmentsContainer">
@@ -27,6 +28,30 @@
                         <p>Loading appointments...</p>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Appointment Detail Modal -->
+<div class="modal fade" id="appointmentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Appointment Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="appointmentModalBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p>Loading...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="#" class="btn btn-primary" id="viewAppointmentBtn">
+                    <i class="bi bi-eye"></i> View Full Details
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -48,55 +73,25 @@ function loadAppointments() {
             container.empty();
             
             if (response.success && response.data && response.data.length > 0) {
-                var html = `
-                    <div class="table-responsive">
-                        <table class="table table-hover table-striped">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Patient</th>
-                                    <th>National Code</th>
-                                    <th>Date</th>
-                                    <th>Time</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
-                $.each(response.data, function(i, apt) {
-                    var statusColors = {
-                        'Scheduled': 'info',
-                        'Completed': 'success',
-                        'Cancelled': 'danger',
-                        'No Show': 'warning',
-                        'Reserved': 'primary',
-                        'Not Reserved': 'secondary'
-                    };
-                    var color = statusColors[apt.status] || 'secondary';
-                    
-                    html += `
-                        <tr>
-                            <td>${i + 1}</td>
-                            <td><strong>${apt.patient_name}</strong></td>
-                            <td>${apt.nationalcode}</td>
-                            <td>${apt.date}</td>
-                            <td>${apt.time}</td>
-                            <td><span class="badge bg-${color}">${apt.status}</span></td>
-                            <td>
-                                <a href="/doctor/appointment/${apt.appoid}" class="btn btn-sm btn-primary">
-                                    <i class="bi bi-eye"></i> View Details
-                                </a>
-                            </td>
-                        </tr>
-                    `;
-                });
-                html += `
-                            </tbody>
-                        </table>
-                    </div>
-                `;
+                var html = buildFolderStructure(response.data);
                 container.html(html);
+                
+                $('#appointmentCount').text(response.data.length + ' appointments');
+                
+                $('.folder-toggle').on('click', function(e) {
+                    e.stopPropagation();
+                    var target = $(this).data('target');
+                    var icon = $(this).find('i');
+                    $(target).slideToggle(300);
+                    icon.toggleClass('bi-chevron-right bi-chevron-down');
+                });
+                
+                $('.view-appointment').on('click', function(e) {
+                    e.stopPropagation();
+                    var appoId = $(this).data('appoid');
+                    viewAppointment(appoId);
+                });
+                
             } else {
                 container.html(`
                     <div class="text-center py-4">
@@ -111,5 +106,372 @@ function loadAppointments() {
         }
     });
 }
+
+function buildFolderStructure(appointments) {
+    var patientGroups = {};
+    
+    appointments.forEach(function(apt) {
+        var pid = apt.patient_id;
+        if (!patientGroups[pid]) {
+            patientGroups[pid] = {
+                patient_id: pid,
+                patient_name: apt.patient_name,
+                appointments: []
+            };
+        }
+        patientGroups[pid].appointments.push(apt);
+    });
+    
+    var html = '<div class="accordion" id="appointmentAccordion">';
+    
+    Object.keys(patientGroups).forEach(function(pid) {
+        var group = patientGroups[pid];
+        
+        // Sort by date (newest first)
+        var sorted = group.appointments.sort(function(a, b) {
+            return new Date(b.date + ' ' + b.time) - new Date(a.date + ' ' + a.time);
+        });
+        
+        // The latest appointment is the root
+        var latest = sorted[0];
+        var rest = sorted.slice(1);
+        
+        // Group rest by followID
+        // Each unique followID becomes a separate folder
+        var followupGroups = {};
+        rest.forEach(function(apt) {
+            var followId = apt.followid || apt.follow_id;
+            
+            // If no followID, each appointment gets its own folder (use appoID as key)
+            if (!followId) {
+                followId = 'single_' + apt.appoid;
+            }
+            
+            if (!followupGroups[followId]) {
+                followupGroups[followId] = [];
+            }
+            followupGroups[followId].push(apt);
+        });
+        
+        html += buildPatientFolder(pid, group.patient_name, latest, followupGroups);
+    });
+    
+    html += '</div>';
+    return html;
+}
+
+function buildPatientFolder(patientId, patientName, latestAppointment, followupGroups) {
+    var statusColors = {
+        'Scheduled': 'info',
+        'Completed': 'success',
+        'Cancelled': 'danger',
+        'No Show': 'warning',
+        'Reserved': 'primary',
+        'Not Reserved': 'secondary'
+    };
+    var color = statusColors[latestAppointment.status] || 'secondary';
+    
+    var hasFollowups = Object.keys(followupGroups).length > 0;
+    var chainCount = Object.keys(followupGroups).length;
+    
+    var html = `
+        <div class="card mb-2 border-primary">
+            <div class="card-header bg-light p-0">
+                <div class="d-flex align-items-center p-2">
+                    <button class="btn btn-sm btn-link folder-toggle" 
+                            data-target="#patient-${patientId}" 
+                            style="text-decoration:none;">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                    <div class="flex-grow-1 d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong><i class="bi bi-person-circle text-primary"></i> ${patientName}</strong>
+                            <span class="badge bg-${color} ms-2">${latestAppointment.status}</span>
+                            <span class="badge bg-secondary ms-1">${latestAppointment.date} ${latestAppointment.time}</span>
+                            <span class="badge bg-info ms-1">Latest</span>
+                            
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-info view-appointment" data-appoid="${latestAppointment.appoid}">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <a href="/doctor/appointment/${latestAppointment.appoid}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="patient-${patientId}" class="collapse">
+                <div class="card-body">
+                    ${hasFollowups ? buildFollowupChains(followupGroups, patientId) : '<p class="text-muted mb-0">No follow-up appointments</p>'}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    return html;
+}
+
+function buildFollowupChains(followupGroups, patientId) {
+    var html = '<div class="ps-4 border-start">';
+    var chainIndex = 0;
+    
+    var keys = Object.keys(followupGroups).sort();
+    
+    keys.forEach(function(chainKey) {
+        var chain = followupGroups[chainKey];
+        if (chain.length === 0) return;
+        
+        // Sort chain by date (oldest first)
+        chain.sort(function(a, b) {
+            return new Date(a.date + ' ' + a.time) - new Date(b.date + ' ' + b.time);
+        });
+        
+        var firstApt = chain[0];
+        var rest = chain.slice(1);
+        
+        var chainId = patientId + '-chain-' + chainIndex;
+        
+        var statusColors = {
+            'Scheduled': 'info',
+            'Completed': 'success',
+            'Cancelled': 'danger',
+            'No Show': 'warning',
+            'Reserved': 'primary',
+            'Not Reserved': 'secondary'
+        };
+        var color = statusColors[firstApt.status] || 'secondary';
+        
+        // Determine label
+        var isSingle = chainKey.startsWith('single_');
+        
+        html += `
+            <div class="card mb-2 border-warning">
+                <div class="card-header bg-warning bg-opacity-10 p-0">
+                    <div class="d-flex align-items-center p-2">
+                        <button class="btn btn-sm btn-link folder-toggle" 
+                                data-target="#chain-${chainId}" 
+                                style="text-decoration:none;">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                        <div class="flex-grow-1 d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-${color}">${firstApt.status}</span>
+                                <span class="badge bg-secondary ms-1">${firstApt.date} ${firstApt.time}</span>
+                                <span class="badge bg-info ms-1">#${firstApt.appoid}</span>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-info view-appointment" data-appoid="${firstApt.appoid}">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <a href="/doctor/appointment/${firstApt.appoid}" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="chain-${chainId}" class="collapse">
+                    <div class="card-body">
+                        ${rest.length > 0 ? buildSubFollowupList(rest) : '<p class="text-muted mb-0">No sub-followups</p>'}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        chainIndex++;
+    });
+    
+    html += '</div>';
+    return html;
+}
+
+function buildSubFollowupList(followups) {
+    if (!followups || followups.length === 0) {
+        return '<p class="text-muted mb-0">No sub-followups</p>';
+    }
+    
+    var html = '<div class="ps-4">';
+    
+    followups.forEach(function(apt) {
+        var statusColors = {
+            'Scheduled': 'info',
+            'Completed': 'success',
+            'Cancelled': 'danger',
+            'No Show': 'warning',
+            'Reserved': 'primary',
+            'Not Reserved': 'secondary'
+        };
+        var color = statusColors[apt.status] || 'secondary';
+        
+        html += `
+            <div class="d-flex align-items-center py-2 border-bottom">
+                <div class="flex-grow-1">
+                    <span class="badge bg-${color}">${apt.status}</span>
+                    <span class="ms-2"><strong>${apt.date}</strong> at ${apt.time}</span>
+                    <span class="badge bg-secondary ms-2">Appointment #${apt.appoid}</span>
+                </div>
+                <div>
+                    <button class="btn btn-sm btn-info view-appointment" data-appoid="${apt.appoid}">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                    <a href="/doctor/appointment/${apt.appoid}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    return html;
+}
+
+function viewAppointment(appointmentId) {
+    $('#appointmentModalBody').html(`
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p>Loading appointment details...</p>
+        </div>
+    `);
+    $('#viewAppointmentBtn').attr('href', '/doctor/appointment/' + appointmentId);
+    $('#appointmentModal').modal('show');
+    
+    $.ajax({
+        url: '/doctor/api/appointment/' + appointmentId,
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var apt = response.data;
+                var statusColors = {
+                    'Scheduled': 'info',
+                    'Completed': 'success',
+                    'Cancelled': 'danger',
+                    'No Show': 'warning',
+                    'Reserved': 'primary',
+                    'Not Reserved': 'secondary'
+                };
+                var color = statusColors[apt.status] || 'secondary';
+                
+                var html = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Patient Information</h6>
+                            <table class="table table-sm">
+                                <tr><td><strong>Name:</strong></td><td>${apt.firstName} ${apt.lastName}</td></tr>
+                                <tr><td><strong>National Code:</strong></td><td>${apt.nationalCode}</td></tr>
+                                <tr><td><strong>Phone:</strong></td><td>${apt.phoneNumber || 'N/A'}</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Appointment Information</h6>
+                            <table class="table table-sm">
+                                <tr><td><strong>Date:</strong></td><td>${apt.date}</td></tr>
+                                <tr><td><strong>Time:</strong></td><td>${apt.time}</td></tr>
+                                <tr><td><strong>Status:</strong></td><td><span class="badge bg-${color}">${apt.status}</span></td></tr>
+                                <tr><td><strong>Online Reserved:</strong></td><td>${apt.isonlinereserved ? 'Yes' : 'No'}</td></tr>
+                                ${apt.follow_id ? `<tr><td><strong>Follow-up ID:</strong></td><td>${apt.follow_id}</td></tr>` : ''}
+                            </table>
+                        </div>
+                    </div>
+                `;
+                
+                if (apt.diseases && apt.diseases.length > 0) {
+                    html += `
+                        <hr>
+                        <h6>Diagnosed Diseases</h6>
+                        <ul class="list-group">
+                    `;
+                    apt.diseases.forEach(function(d) {
+                        html += `
+                            <li class="list-group-item">
+                                <strong>${d.diseasename || d.code}</strong>
+                                ${d.description ? '<br><small>' + d.description + '</small>' : ''}
+                            </li>
+                        `;
+                    });
+                    html += '</ul>';
+                }
+                
+                if (apt.medicines && apt.medicines.length > 0) {
+                    html += `
+                        <hr>
+                        <h6>Prescribed Medicines</h6>
+                        <ul class="list-group">
+                    `;
+                    apt.medicines.forEach(function(m) {
+                        html += `
+                            <li class="list-group-item">
+                                <strong>${m.medicinename}</strong>
+                                ${m.description ? '<br><small>' + m.description + '</small>' : ''}
+                            </li>
+                        `;
+                    });
+                    html += '</ul>';
+                }
+                
+                if (apt.vitals && apt.vitals.length > 0) {
+                    html += `
+                        <hr>
+                        <h6>Vital Signs</h6>
+                        <div class="row">
+                    `;
+                    apt.vitals.forEach(function(v) {
+                        html += `
+                            <div class="col-md-4 mb-2">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h6>${v.parametername}</h6>
+                                        <h4>${v.parametervalue}</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                }
+                
+                $('#appointmentModalBody').html(html);
+            } else {
+                $('#appointmentModalBody').html('<div class="alert alert-danger">' + (response.error || 'Failed to load appointment') + '</div>');
+            }
+        },
+        error: function() {
+            $('#appointmentModalBody').html('<div class="alert alert-danger">Error loading appointment details</div>');
+        }
+    });
+}
 </script>
+
+<style>
+.folder-toggle {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: transform 0.2s;
+}
+.folder-toggle i {
+    font-size: 1.2rem;
+    transition: transform 0.3s;
+}
+.ps-4 {
+    padding-left: 2rem !important;
+}
+.border-start {
+    border-left: 2px solid #dee2e6 !important;
+}
+.bg-opacity-10 {
+    --bs-bg-opacity: 0.1;
+}
+.card-header .btn-link {
+    color: #6c757d;
+}
+.card-header .btn-link:hover {
+    color: #0d6efd;
+}
+</style>
 {% endblock %}

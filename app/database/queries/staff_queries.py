@@ -121,11 +121,24 @@ def create_appointment(data):
     if not mr_result:
         raise ValueError("Patient has no medical record")
 
+    follow_id = data.get('follow_up_id')
+    if not follow_id:
+        from app.database.queries.followup_queries import create_followup
+        follow_id = create_followup(0)
+        if not follow_id:
+            raise ValueError("Failed to create followup record")
+    else:
+        from app.database.queries.followup_queries import get_followup_by_id
+        followup = get_followup_by_id(follow_id)
+        if not followup:
+            raise ValueError("Selected follow-up does not exist")
+        
+        
     query = """
         INSERT INTO appointment (
-            mID, doctorID,staffID, date, time, status, isOnlineReserved
+            mID, doctorID,staffID, date, time, status, isOnlineReserved, followID
         ) VALUES (
-            %s, %s, %s, %s, %s, %s,%s
+            %s, %s, %s, %s, %s, %s, %s, %s
         )
         RETURNING appoID
     """
@@ -146,6 +159,7 @@ def create_appointment(data):
             data["time"],
             "Scheduled",
             isOnlineReserved,
+            follow_id
         ),
         fetch_one=True,
         commit=True,

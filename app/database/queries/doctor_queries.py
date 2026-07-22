@@ -14,7 +14,6 @@ def get_doctor_patients(doctor_id):
             p.phoneNumber,
             a.admID,
             a.cost,
-            a.createdAt as admission_date,
             bi.bedID,
             bi.status as bed_status,
             r.name as room_name,
@@ -50,6 +49,7 @@ def get_doctor_appointments(doctor_id):
             a.status,
             a.isOnlineReserved,
             a.createdAt,
+            a.followID,
             p.pID as patient_id,
             p.firstName || ' ' || p.lastName as patient_name,
             p.nationalCode,
@@ -77,6 +77,8 @@ def get_doctor_appointments(doctor_id):
             row['date'] = str(row['date'])
         if 'createdat' in row and row['createdat']:
             row['createdat'] = str(row['createdat'])
+        if 'followid' not in row:
+            row['followid'] = None
     
     return results
 

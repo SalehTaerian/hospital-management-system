@@ -19,29 +19,31 @@ def doctor_login_required():
 def patient_requests():
     if not patient_login_required():
         return redirect('/patient-login')
-    
     return render_template('patient/requests.html')
 
 @request_bp.route('/doctor')
 def doctor_requests():
     if not doctor_login_required():
         return redirect('/staff-login')
-    
-    return render_template('staff/requests.html')
+    return render_template('doctor/requests.html')
 
 @request_bp.route('/doctor/create')
 def create_request():
     if not doctor_login_required():
         return redirect('/staff-login')
-    
     departments = get_departments_list_service()
-    return render_template('staff/create_request.html', departments=departments)
+    return render_template('doctor/create_request.html', departments=departments)
+
+@request_bp.route('/doctor/view/<int:req_id>')
+def view_request(req_id):
+    if not doctor_login_required():
+        return redirect('/staff-login')
+    return render_template('doctor/request_detail.html', req_id=req_id)
 
 @request_bp.route('/api/patient', methods=['GET'])
 def api_get_patient_requests():
     if not patient_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
-    
     patient_id = session.get('user_id')
     requests = get_patient_requests_service(patient_id)
     return jsonify({'success': True, 'data': requests})
@@ -50,7 +52,6 @@ def api_get_patient_requests():
 def api_get_patient_pending_requests():
     if not patient_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
-    
     patient_id = session.get('user_id')
     requests = get_patient_pending_requests_service(patient_id)
     return jsonify({'success': True, 'data': requests})
@@ -59,16 +60,24 @@ def api_get_patient_pending_requests():
 def api_get_doctor_requests():
     if not doctor_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
-    
     doctor_id = session.get('user_id')
     requests = get_doctor_requests_service(doctor_id)
     return jsonify({'success': True, 'data': requests})
+
+@request_bp.route('/api/<int:req_id>', methods=['GET'])
+def api_get_request(req_id):
+    if not doctor_login_required():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    try:
+        request_data = get_request_by_id_service(req_id)
+        return jsonify({'success': True, 'data': request_data})
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 404
 
 @request_bp.route('/api/medicine', methods=['POST'])
 def api_create_medicine_request():
     if not doctor_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
-    
     try:
         data = request.get_json()
         data['doctorID'] = session.get('user_id')
@@ -85,7 +94,6 @@ def api_create_medicine_request():
 def api_create_test_request():
     if not doctor_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
-    
     try:
         data = request.get_json()
         data['doctorID'] = session.get('user_id')
@@ -102,7 +110,6 @@ def api_create_test_request():
 def api_confirm_request(req_id):
     if not patient_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
-    
     try:
         patient_id = session.get('user_id')
         result = confirm_request_service(req_id, patient_id)
@@ -118,7 +125,6 @@ def api_confirm_request(req_id):
 def api_cancel_request(req_id):
     if not doctor_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
-    
     try:
         doctor_id = session.get('user_id')
         result = cancel_request_service(req_id, doctor_id)
@@ -130,11 +136,44 @@ def api_cancel_request(req_id):
     except ValueError as e:
         return jsonify({'success': False, 'error': str(e)}), 400
 
+@request_bp.route('/api/<int:req_id>/results', methods=['POST'])
+def api_add_request_results(req_id):
+    if not doctor_login_required():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    try:
+        data = request.get_json()
+        data['reqID'] = req_id
+        result = add_parameter_result_service(data)
+        return jsonify({
+            'success': True,
+            'message': 'Result added successfully',
+            'id': result
+        })
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@request_bp.route('/api/<int:req_id>/status', methods=['PUT'])
+def api_update_request_status(req_id):
+    if not doctor_login_required():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    try:
+        data = request.get_json()
+        status = data.get('status')
+        if not status:
+            return jsonify({'success': False, 'error': 'Status is required'}), 400
+        result = update_request_status_service(req_id, status)
+        return jsonify({
+            'success': True,
+            'message': 'Request status updated successfully',
+            'id': result
+        })
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
 @request_bp.route('/api/medicines', methods=['GET'])
 def api_get_medicines():
     if not doctor_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
-    
     medicines = get_medicines_list_service()
     return jsonify({'success': True, 'data': medicines})
 
@@ -142,7 +181,6 @@ def api_get_medicines():
 def api_get_tests():
     if not doctor_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
-    
     tests = get_tests_list_service()
     return jsonify({'success': True, 'data': tests})
 
@@ -150,7 +188,6 @@ def api_get_tests():
 def api_get_departments():
     if not doctor_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
-    
     departments = get_departments_list_service()
     return jsonify({'success': True, 'data': departments})
 
@@ -158,13 +195,10 @@ def api_get_departments():
 def api_get_patient_mid():
     if not doctor_login_required():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
-    
     patient_id = request.args.get('patient_id')
     if not patient_id:
         return jsonify({'success': False, 'error': 'Patient ID is required'}), 400
-    
     mid = get_patient_medical_record_id(patient_id)
     if not mid:
         return jsonify({'success': False, 'error': 'Patient has no medical record'}), 404
-    
     return jsonify({'success': True, 'data': {'mID': mid}})
