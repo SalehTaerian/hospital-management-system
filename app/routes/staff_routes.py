@@ -9,6 +9,8 @@ from flask import (
 )
 from app.services.auth_service import is_logged_in
 from app.services.staff_service import *
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import io
 import base64

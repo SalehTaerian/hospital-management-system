@@ -62,7 +62,7 @@ def get_doctors_list():
     query = """
         SELECT 
             e.employeeID AS id,
-            e.firstName || ' ' || e.lastName as name,
+            e.firstName || ' ' || e.lastName as name
         FROM doctor AS d
         JOIN employee AS e ON d.employeeID = e.employeeID
         ORDER BY e.lastName
