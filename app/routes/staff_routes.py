@@ -49,13 +49,13 @@ def making_chart(func, xParam, yParam):
 def dashboard():
     if not staff_login_required():
         return redirect("/staff-login")
-    # occupiedBedChart = making_chart(get_occupied_beds_by_department , name ,occupied)
-    # workingPressureChart = making_chart(working_pressure_service , name ,workingPressure)
-    # avgAdmissionTimeChart = making_chart(avg_admission_time_service , name ,avgAdmissionTime)
-    # numberOfVisitsPerHour = making_chart(visits_per_hour_service , appointmentTime ,patientCount)
-    # numberOfVisitsPerDay = making_chart(visits_per_day_service , appointmentTime ,patientCount)
-    # return render_template('staff/dashboard.html' , occupiedBedChart = occupiedBedChart ,workingPressureChart = workingPressureChart,avgAdmissionTimeChart = avgAdmissionTimeChart,numberOfVisitsPerHour = numberOfVisitsPerHour ,numberOfVisitsPerDay = numberOfVisitsPerDay)
-    return render_template("staff/dashboard.html")
+    occupiedBedChart = making_chart(get_occupied_beds_by_department , "name" ,"occupied")
+    workingPressureChart = making_chart(working_pressure_service , "name" ,"workingPressure")
+    avgAdmissionTimeChart = making_chart(avg_admission_time_service , "name" ,"avgAdmissionTime")
+    numberOfVisitsPerHour = making_chart(visits_per_hour_service , "appointmentTime" ,"patientCount")
+    numberOfVisitsPerDay = making_chart(visits_per_day_service , "appointmentTime" ,"patientCount")
+    return render_template('staff/dashboard.html' , occupiedBedChart = occupiedBedChart ,workingPressureChart = workingPressureChart,avgAdmissionTimeChart = avgAdmissionTimeChart,numberOfVisitsPerHour = numberOfVisitsPerHour ,numberOfVisitsPerDay = numberOfVisitsPerDay)
+    # return render_template("staff/dashboard.html")
 
 
 @staff_bp.route("/patients")
