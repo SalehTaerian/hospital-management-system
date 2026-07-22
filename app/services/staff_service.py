@@ -224,3 +224,5 @@ def get_most_diseases_service():
 
 def get_most_used_medicine_service():
     return get_most_used_medicine()
+def get_most_services_provided_service():
+    return get_most_services_provided()

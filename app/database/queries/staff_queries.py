@@ -904,3 +904,15 @@ def get_most_used_medicine():
     """
     results = DatabaseConnection.execute_query(query, fetch_all=True, fetch_dict=True)
     return results
+
+def get_most_services_provided():
+    query = """
+    SELECT d.name , count(*)  AS workcount
+    FROM department d
+    JOIN request r ON r.departID = d.departID
+    WHERE r.createdAt >= CURRENT_DATE - INTERVAL '7 days'
+    GROUP BY d.name
+    LIMIT 5
+    """
+    results = DatabaseConnection.execute_query(query, fetch_all=True, fetch_dict=True)
+    return results
