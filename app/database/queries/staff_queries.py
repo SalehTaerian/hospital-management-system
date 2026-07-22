@@ -666,3 +666,22 @@ def avg_admission_time():
     """
     results = DatabaseConnection.execute_query(query, fetch_all=True, fetch_dict=True)
     return results
+
+
+def visits_per_hour():
+    query = """
+        SELECT DATE_TRUNC('hour',time)-(EXTRACT(hour FROM time)::int % 2)*INTERVAL '1 hour' AS appointmentTime,COUNT(*) AS patientCount
+        FROM appointment
+        GROUP BY DATE_TRUNC('hour',time)-(EXTRACT(hour FROM time)::int % 2)*INTERVAL '1 hour'
+    """
+    results = DatabaseConnection.execute_query(query, fetch_all=True, fetch_dict=True)
+    return results
+
+def visits_per_day():
+    query = """
+        SELECT TO_CHAR(date , 'Day') AS appointmentTime,COUNT(*) AS patientCount
+        FROM appointment
+        GROUP BY DATE_TRUNC(date , 'Day')
+    """
+    results = DatabaseConnection.execute_query(query, fetch_all=True, fetch_dict=True)
+    return results

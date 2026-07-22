@@ -209,4 +209,12 @@ def working_pressure_service():
 
 
 def avg_admission_time_service():
-    avg_admission_time()
+    return avg_admission_time()
+
+
+def visits_per_hour_service():
+    return visits_per_hour()
+
+
+def visits_per_day_service():
+    return visits_per_day()

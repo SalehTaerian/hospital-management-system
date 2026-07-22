@@ -52,7 +52,9 @@ def dashboard():
     # occupiedBedChart = making_chart(get_occupied_beds_by_department , name ,occupied)
     # workingPressureChart = making_chart(working_pressure_service , name ,workingPressure)
     # avgAdmissionTimeChart = making_chart(avg_admission_time_service , name ,avgAdmissionTime)
-    # return render_template('staff/dashboard.html' , occupiedBedChart = occupiedBedChart ,workingPressureChart = workingPressureChart,avgAdmissionTimeChart = avgAdmissionTimeChart )
+    # numberOfVisitsPerHour = making_chart(visits_per_hour_service , appointmentTime ,patientCount)
+    # numberOfVisitsPerDay = making_chart(visits_per_day_service , appointmentTime ,patientCount)
+    # return render_template('staff/dashboard.html' , occupiedBedChart = occupiedBedChart ,workingPressureChart = workingPressureChart,avgAdmissionTimeChart = avgAdmissionTimeChart,numberOfVisitsPerHour = numberOfVisitsPerHour ,numberOfVisitsPerDay = numberOfVisitsPerDay)
     return render_template("staff/dashboard.html")
 
 
