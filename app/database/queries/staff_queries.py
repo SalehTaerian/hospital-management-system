@@ -94,15 +94,17 @@ def get_today_appointments():
 
     for row in results:
         if "time" in row and row["time"]:
-            row["time"] = str(row["time"])
+            row["time"] = str(row["time"])[:5]
         if "date" in row and row["date"]:
             row["date"] = str(row["date"])
         if "reservetime" in row and row["reservetime"]:
             row["reservetime"] = str(row["reservetime"])
         if "entertime" in row and row["entertime"]:
             row["entertime"] = str(row["entertime"])
-        if "waiting_minutes" in row and row["waiting_minutes"]:
-            row["waiting_minutes"] = round(float(row["waiting_minutes"]), 2)
+        if "waiting_minutes" in row and row["waiting_minutes"] is not None:
+            row["waiting_minutes"] = round(float(row["waiting_minutes"]), 0)
+        else:
+            row["waiting_minutes"] = None
 
     return results
 

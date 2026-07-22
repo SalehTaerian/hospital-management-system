@@ -75,3 +75,46 @@ def api_get_stats():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     data = get_overall_statistics_service()
     return jsonify({'success': True, 'data': data})
+
+@analytics_bp.route('/api/waiting-time', methods=['GET'])
+def api_get_average_waiting_time():
+    if not is_authenticated():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    data = get_average_waiting_time_service()
+    return jsonify({'success': True, 'data': data})
+
+@analytics_bp.route('/api/bed-occupancy', methods=['GET'])
+def api_get_bed_occupancy():
+    if not is_authenticated():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    data = get_bed_occupancy_rate_service()
+    return jsonify({'success': True, 'data': data})
+
+@analytics_bp.route('/api/readmission-rate', methods=['GET'])
+def api_get_readmission_rate():
+    if not is_authenticated():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    data = get_readmission_rate_30_days_service()
+    return jsonify({'success': True, 'data': data})
+
+@analytics_bp.route('/api/admission-time', methods=['GET'])
+def api_get_average_admission_time():
+    if not is_authenticated():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    data = get_average_admission_time_service()
+    return jsonify({'success': True, 'data': data})
+
+@analytics_bp.route('/api/admission-time/departments', methods=['GET'])
+def api_get_admission_time_by_department():
+    if not is_authenticated():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    data = get_admission_time_by_department_service()
+    return jsonify({'success': True, 'data': data})
+
+@analytics_bp.route('/api/waiting-time/trend', methods=['GET'])
+def api_get_waiting_time_trend():
+    if not is_authenticated():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    days = request.args.get('days', 30, type=int)
+    data = get_daily_waiting_time_trend_service(days)
+    return jsonify({'success': True, 'data': data})

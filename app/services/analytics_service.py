@@ -20,3 +20,25 @@ def get_disease_timeline_service(disease_id):
 
 def get_overall_statistics_service():
     return get_overall_statistics()
+
+from app.database.queries.analytics_queries import *
+
+# ... existing functions ...
+
+def get_average_waiting_time_service():
+    return get_average_waiting_time()
+
+def get_bed_occupancy_rate_service():
+    return get_bed_occupancy_rate()
+
+def get_readmission_rate_30_days_service():
+    return get_readmission_rate_30_days()
+
+def get_average_admission_time_service():
+    return get_average_admission_time()
+
+def get_admission_time_by_department_service():
+    return get_admission_time_by_department()
+
+def get_daily_waiting_time_trend_service(days=30):
+    return get_daily_waiting_time_trend(days)
