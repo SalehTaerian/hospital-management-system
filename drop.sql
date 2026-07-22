@@ -1,0 +1,25 @@
+-- Active: 1783552067130@@127.0.0.1@5432@hospital-management-system@public
+DROP TABLE IF EXISTS
+    employeeShift,
+    shift,
+    surgeonSpecialization,
+    doctorSpecialization,
+    specializationFields,
+    doctor,
+    surgeon,
+    nurse,
+    officeStaff,
+    employee,
+    department,
+    hospital,
+    insurance,
+    admission,
+    medicalRecord,
+    patient,
+    parameterList,
+    icdmCode,
+    icdCode,
+    icdsCode,
+    icdtCode,
+    storage
+CASCADE;

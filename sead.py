@@ -9,7 +9,7 @@ class DatabaseSeeder:
     def __init__(self):
         self.conn = psycopg2.connect(
             host="127.0.0.1",
-            database="hospital-management-system",
+            database="hospital_management_system",
             user="postgres",
             password="saleh1385"
         )

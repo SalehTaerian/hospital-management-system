@@ -649,3 +649,20 @@ def working_pressure():
     """
     results = DatabaseConnection.execute_query(query, fetch_all=True, fetch_dict=True)
     return results
+
+
+def avg_admission_time():
+    query = """
+        WITH admissionTimeTABLE AS
+        (
+        SELECT b.asgAdmID , d.name , MAX(b.endTime) - MIN(b.startTimestamp) AS admissionTime
+        FROM department d JOIN room r ON r.departID = d.departID
+        JOIN bedInfo b ON b.roomID = r.roomID
+        GROUP BY asgAdmID , d.name
+        )
+        SELECT name , AVG(admissionTime) AS avgAdmissionTime
+        FROM admissionTimeTABLE
+        GROUP BY name
+    """
+    results = DatabaseConnection.execute_query(query, fetch_all=True, fetch_dict=True)
+    return results

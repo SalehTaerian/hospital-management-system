@@ -28,7 +28,7 @@ def office_staff_required():
     return session.get("user_role") == "officeStaff"
 
 
-def making_chart(func , xParam , yParam):
+def making_chart(func, xParam, yParam):
     parameters = func()
     names = [item[xParam] for item in parameters]
     values = [item[yParam] for item in parameters]
@@ -49,9 +49,10 @@ def making_chart(func , xParam , yParam):
 def dashboard():
     if not staff_login_required():
         return redirect("/staff-login")
-    # occupiedBedChart = occupied_bed_chart(get_occupied_beds_by_department , name ,occupied)
-    # workingPressureChart = occupied_bed_chart(working_pressure_service , name ,workingPressure)
-    # return render_template('staff/dashboard.html' , chart = imgBase64)
+    # occupiedBedChart = making_chart(get_occupied_beds_by_department , name ,occupied)
+    # workingPressureChart = making_chart(working_pressure_service , name ,workingPressure)
+    # avgAdmissionTimeChart = making_chart(avg_admission_time_service , name ,avgAdmissionTime)
+    # return render_template('staff/dashboard.html' , occupiedBedChart = occupiedBedChart ,workingPressureChart = workingPressureChart,avgAdmissionTimeChart = avgAdmissionTimeChart )
     return render_template("staff/dashboard.html")
 
 

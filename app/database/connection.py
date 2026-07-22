@@ -65,9 +65,10 @@ class DatabaseConnection:
             database=Config.DB_NAME
             )
             cursor = conn.cursor()
-            cls.run_sql_file(cursor , "schema.sql")
-            cls.run_sql_file(cursor , "triggers.sql")
-            cls.run_sql_file(cursor , "views.sql")
+            base_path = os.path.dirname(os.path.abspath(__file__))
+            cls.run_sql_file(cursor , os.path.join(base_path,"schema.sql"))
+            cls.run_sql_file(cursor , os.path.join(base_path,"triggers.sql"))
+            cls.run_sql_file(cursor , os.path.join(base_path,"views.sql"))
             conn.commit()
             cursor.close()
             conn.close()
