@@ -52,6 +52,7 @@
                             <option value="">Select Medicine...</option>
                         </select>
                     </div>
+                    <div id="conflicts" style="color:red;margin-top: 10px;margin-bottom: 10px;"></div>
                     
                     <div class="mb-3" id="testContainer" style="display:none;">
                         <label class="form-label">Test</label>
@@ -178,7 +179,30 @@ function loadMedicines() {
         }
     });
 }
+$('#medicineId').on('change', function() {
+    var medId = $(this).val();
 
+    if (medId) {
+        $.ajax({
+            url: '/requests/api/medicine-conflict/' + medId,
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    var container = $('#conflicts');
+                    container.empty();
+
+                    if (response.data.length > 0) {
+                        $.each(response.data, function(i, med) {
+                            container.append('<div>' + med.medicineName + '</div>');
+                        });
+                    } else {
+                        container.append('<div>No conflicts</div>');
+                    }
+                }
+            }
+        });
+    }
+});
 function loadTests() {
     $.ajax({
         url: '/requests/api/tests',

@@ -35,8 +35,8 @@ def patient_detail(patient_id):
 def appointment_detail(appointment_id):
     if not doctor_login_required():
         return redirect('/staff-login')
-    
-    return render_template('doctor/appointment_detail.html', appointment_id=appointment_id)
+    medicineAllergy = get_medicine_allergy_service(appointment_id)
+    return render_template('doctor/appointment_detail.html', appointment_id=appointment_id, medicineAllergy = medicineAllergy)
 
 
 @doctor_bp.route('/api/patients', methods=['GET'])

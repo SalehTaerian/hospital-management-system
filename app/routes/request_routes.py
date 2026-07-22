@@ -37,6 +37,20 @@ def create_request():
     departments = get_departments_list_service()
     return render_template('staff/create_request.html', departments=departments)
 
+@request_bp.route('/api/medicine-conflict/<int:medId>', methods=['GET'])
+def api_medicine_conflict(medId):
+    if not doctor_login_required():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    try:
+        conflicts = medicine_conflict_service(medId)
+        return jsonify({
+            'success': True,
+            'data':conflicts
+        })
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+        
+
 @request_bp.route('/api/patient', methods=['GET'])
 def api_get_patient_requests():
     if not patient_login_required():

@@ -276,3 +276,13 @@ def get_departments_list():
         fetch_all=True,
         fetch_dict=True
     )
+    
+    
+def medicine_conflict(medId):
+    query = """
+        SELECT i.medicineName
+        FROM medicineConflict m JOIN icdmCode i ON  m.icdm2ID = i.icdmID
+        WHERE icdm1ID = %s
+    """
+    results = DatabaseConnection.execute_query(query,(medId,) , fetch_all=True, fetch_dict=True)
+    return results

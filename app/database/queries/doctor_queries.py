@@ -366,6 +366,21 @@ def get_patient_medicine_history(patient_id):
         fetch_all=True,
         fetch_dict=True
     )
+def get_medicine_allergy(appointment_id):
+    query = """
+        SELECT 
+            i.medicineName
+        FROM medicalRecord m
+        JOIN medicineAllergy ma ON ma.mID = m.mID
+        JOIN icdmCode i ON i.icdmID = ma.icdmID
+        WHERE m.mID = %s
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        (appointment_id,),
+        fetch_all=True,
+        fetch_dict=True
+    )
 
 def get_patient_drug_history(patient_id):
     query = """
@@ -608,3 +623,6 @@ def mark_warnings_checked_for_patient(patient_id):
         commit=True
     )
     return [row['warnid'] for row in results] if results else []
+
+
+
