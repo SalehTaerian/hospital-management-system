@@ -20,10 +20,8 @@
     </div>
 </div>
 
-<!-- Hidden input for appointment ID -->
 <input type="hidden" id="appointmentId" value="{{ appointment_id }}">
 
-<!-- Appointment Info -->
 <div class="row mt-4">
     <div class="col-12">
         <div class="card shadow" id="appointmentInfo">
@@ -35,43 +33,25 @@
     </div>
 </div>
 
-<!-- Disease Diagnosis -->
 <div class="row mt-4">
-    <div class="col-md-6">
+    <div class="col-12">
         <div class="card shadow">
-            <div class="card-header bg-danger text-white">
-                <h5 class="mb-0"><i class="bi bi-heart-pulse"></i> Disease Diagnosis</h5>
-            </div>
-            <div class="card-body">
-                <div id="diseaseDiagnosisList">
-                    <p class="text-muted">No diseases diagnosed</p>
-                </div>
-                <button class="btn btn-danger btn-sm w-100 mt-2" id="addDiseaseDiagnosisBtn">
-                    <i class="bi bi-plus-circle"></i> Add Disease Diagnosis
+            <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-heart-pulse"></i> Disease Diagnoses & Medicines</h5>
+                <button class="btn btn-light btn-sm" id="addDiseaseBtn">
+                    <i class="bi bi-plus-circle"></i> Add Disease
                 </button>
             </div>
-        </div>
-    </div>
-
-    <!-- Medicine Diagnosis -->
-    <div class="col-md-6">
-        <div class="card shadow">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0"><i class="bi bi-prescription"></i> Medicine Diagnosis</h5>
-            </div>
-            <div class="card-body">
-                <div id="medicineDiagnosisList">
-                    <p class="text-muted">No medicines prescribed</p>
+            <div class="card-body" id="diseaseContainer">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-danger" role="status"></div>
+                    <p>Loading diseases...</p>
                 </div>
-                <button class="btn btn-success btn-sm w-100 mt-2" id="addMedicineDiagnosisBtn">
-                    <i class="bi bi-plus-circle"></i> Add Medicine
-                </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Vital Signs -->
 <div class="row mt-4">
     <div class="col-12">
         <div class="card shadow">
@@ -90,7 +70,6 @@
     </div>
 </div>
 
-<!-- Disease History -->
 <div class="row mt-4">
     <div class="col-12">
         <div class="card shadow">
@@ -140,61 +119,92 @@
     </div>
 </div>
 
-<!-- Modals -->
-<!-- Disease Diagnosis Modal -->
-<div class="modal fade" id="diseaseDiagnosisModal" tabindex="-1">
+<!-- Add Disease Modal -->
+<div class="modal fade" id="addDiseaseModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
                 <h5 class="modal-title">Add Disease Diagnosis</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form id="diseaseDiagnosisForm">
+            <form id="addDiseaseForm">
                 <div class="modal-body">
-                    <input type="hidden" id="ddAppoID" value="{{ appointment_id }}">
+                    <input type="hidden" id="adAppoID" value="{{ appointment_id }}">
                     <div class="mb-3">
                         <label class="form-label">Disease</label>
-                        <select class="form-control" id="ddIcdID" required>
+                        <select class="form-control" id="adIcdID" required>
                             <option value="">Select Disease...</option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Description</label>
-                        <textarea class="form-control" id="ddDescription" rows="3"></textarea>
+                        <textarea class="form-control" id="adDescription" rows="3"></textarea>
                     </div>
-                    <div id="ddMessage" class="alert d-none"></div>
+                    <div id="adMessage" class="alert d-none"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger">Add Diagnosis</button>
+                    <button type="submit" class="btn btn-danger">Add Disease</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Medicine Diagnosis Modal -->
-<div class="modal fade" id="medicineDiagnosisModal" tabindex="-1">
+<!-- Edit Disease Modal -->
+<div class="modal fade" id="editDiseaseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">Edit Disease</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editDiseaseForm">
+                <div class="modal-body">
+                    <input type="hidden" id="edDisDiagID">
+                    <div class="mb-3">
+                        <label class="form-label">Disease</label>
+                        <select class="form-control" id="edIcdID" required>
+                            <option value="">Select Disease...</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="edDescription" rows="3"></textarea>
+                    </div>
+                    <div id="edMessage" class="alert d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">Update Disease</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Medicine to Disease Modal -->
+<div class="modal fade" id="addMedicineModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
-                <h5 class="modal-title">Add Medicine</h5>
+                <h5 class="modal-title">Add Medicine to Disease</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form id="medicineDiagnosisForm">
+            <form id="addMedicineForm">
                 <div class="modal-body">
-                    <input type="hidden" id="mdAppoID" value="{{ appointment_id }}">
+                    <input type="hidden" id="amDisDiagID">
                     <div class="mb-3">
                         <label class="form-label">Medicine</label>
-                        <select class="form-control" id="mdIcdmID" required>
+                        <select class="form-control" id="amIcdmID" required>
                             <option value="">Select Medicine...</option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Description</label>
-                        <textarea class="form-control" id="mdDescription" rows="3"></textarea>
+                        <textarea class="form-control" id="amDescription" rows="3"></textarea>
                     </div>
-                    <div id="mdMessage" class="alert d-none"></div>
+                    <div id="amMessage" class="alert d-none"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -205,32 +215,34 @@
     </div>
 </div>
 
-<!-- Vital Sign Modal -->
-<div class="modal fade" id="vitalSignModal" tabindex="-1">
+<!-- Feedback Modal -->
+<div class="modal fade" id="feedbackModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-info text-white">
-                <h5 class="modal-title">Add Vital Sign</h5>
+                <h5 class="modal-title">Medicine Effectiveness</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form id="vitalSignForm">
+            <form id="feedbackForm">
                 <div class="modal-body">
-                    <input type="hidden" id="vsAppoID" value="{{ appointment_id }}">
+                    <input type="hidden" id="fbMedDiagID">
                     <div class="mb-3">
-                        <label class="form-label">Parameter</label>
-                        <select class="form-control" id="vsParameterID" required>
-                            <option value="">Select Parameter...</option>
-                        </select>
+                        <label class="form-label">Medicine</label>
+                        <p><strong id="fbMedicineName"></strong></p>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Value</label>
-                        <input type="number" class="form-control" id="vsValue" step="0.01" required>
+                        <label class="form-label">Effectiveness Percentage</label>
+                        <input type="range" class="form-range" id="fbEffectRange" min="0" max="100" value="50">
+                        <div class="text-center">
+                            <span class="badge bg-info fs-5" id="fbEffectValue">50%</span>
+                        </div>
                     </div>
-                    <div id="vsMessage" class="alert d-none"></div>
+                    <div id="fbMessage" class="alert d-none"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-info">Add Vital Sign</button>
+                    <button type="button" class="btn btn-danger" id="fbDeleteBtn">Delete Feedback</button>
+                    <button type="submit" class="btn btn-info">Save Feedback</button>
                 </div>
             </form>
         </div>
@@ -326,6 +338,38 @@
         </div>
     </div>
 </div>
+
+<!-- Vital Sign Modal -->
+<div class="modal fade" id="vitalSignModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">Add Vital Sign</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="vitalSignForm">
+                <div class="modal-body">
+                    <input type="hidden" id="vsAppoID" value="{{ appointment_id }}">
+                    <div class="mb-3">
+                        <label class="form-label">Parameter</label>
+                        <select class="form-control" id="vsParameterID" required>
+                            <option value="">Select Parameter...</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Value</label>
+                        <input type="number" class="form-control" id="vsValue" step="0.01" required>
+                    </div>
+                    <div id="vsMessage" class="alert d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-info">Add Vital Sign</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -339,25 +383,70 @@ $(document).ready(function() {
     loadVitalParameters();
     loadPatientHistory(appointmentId);
     
-    // Disease Diagnosis
-    $('#addDiseaseDiagnosisBtn').on('click', function() {
-        $('#diseaseDiagnosisModal').modal('show');
+    $('#addDiseaseBtn').on('click', function() {
+        $('#addDiseaseModal').modal('show');
     });
-    $('#diseaseDiagnosisForm').on('submit', function(e) {
+    $('#addDiseaseForm').on('submit', function(e) {
         e.preventDefault();
-        addDiseaseDiagnosis();
+        addDisease();
     });
     
-    // Medicine Diagnosis
-    $('#addMedicineDiagnosisBtn').on('click', function() {
-        $('#medicineDiagnosisModal').modal('show');
+    $(document).on('click', '.btn-add-medicine', function() {
+        var disDiagID = $(this).data('id');
+        $('#amDisDiagID').val(disDiagID);
+        $('#addMedicineModal').modal('show');
     });
-    $('#medicineDiagnosisForm').on('submit', function(e) {
+    $('#addMedicineForm').on('submit', function(e) {
         e.preventDefault();
-        addMedicineDiagnosis();
+        addMedicine();
     });
     
-    // Vital Sign
+    $(document).on('click', '.btn-edit-disease', function() {
+        var disDiagID = $(this).data('id');
+        editDisease(disDiagID);
+    });
+    $('#editDiseaseForm').on('submit', function(e) {
+        e.preventDefault();
+        updateDisease();
+    });
+    
+    $(document).on('click', '.btn-delete-disease', function() {
+        var disDiagID = $(this).data('id');
+        if (confirm('Are you sure you want to delete this disease and all its medicines?')) {
+            deleteDisease(disDiagID);
+        }
+    });
+    
+    $(document).on('click', '.btn-delete-medicine', function() {
+        var medDiagID = $(this).data('medid');
+        if (confirm('Remove this medicine from the disease?')) {
+            deleteMedicine(medDiagID);
+        }
+    });
+    
+    $(document).on('click', '.btn-feedback', function() {
+        var medDiagID = $(this).data('medid');
+        var medName = $(this).data('medname');
+        var effect = $(this).data('effect');
+        openFeedbackModal(medDiagID, medName, effect);
+    });
+    
+    $('#fbEffectRange').on('input', function() {
+        var val = $(this).val();
+        $('#fbEffectValue').text(val + '%');
+    });
+    
+    $('#feedbackForm').on('submit', function(e) {
+        e.preventDefault();
+        saveFeedback();
+    });
+    
+    $('#fbDeleteBtn').on('click', function() {
+        if (confirm('Delete feedback for this medicine?')) {
+            deleteFeedback();
+        }
+    });
+    
     $('#addVitalSignBtn').on('click', function() {
         $('#vitalSignModal').modal('show');
     });
@@ -366,7 +455,6 @@ $(document).ready(function() {
         addVitalSign();
     });
     
-    // Disease History
     $('#addDiseaseHistoryBtn').on('click', function() {
         $('#diseaseHistoryModal').modal('show');
     });
@@ -375,7 +463,6 @@ $(document).ready(function() {
         addDiseaseHistory();
     });
     
-    // Medicine History
     $('#addMedicineHistoryBtn').on('click', function() {
         $('#medicineHistoryModal').modal('show');
     });
@@ -384,7 +471,6 @@ $(document).ready(function() {
         addMedicineHistory();
     });
     
-    // Drug History
     $('#addDrugHistoryBtn').on('click', function() {
         $('#drugHistoryModal').modal('show');
     });
@@ -417,9 +503,9 @@ function loadAppointmentInfo(appointmentId) {
                             <div class="col-md-6">
                                 <h5>Patient Information</h5>
                                 <table class="table table-sm">
-                                    <tr><td><strong>Name:</strong></td><td>${apt.firstname} ${apt.lastname}</td></tr>
-                                    <tr><td><strong>National Code:</strong></td><td>${apt.nationalcode}</td></tr>
-                                    <tr><td><strong>Patient ID:</strong></td><td>${apt.patient_id}</td></tr>
+                                    <tr><td><strong>Name:</strong></td><td>${apt.firstName} ${apt.lastName}</td></tr>
+                                    <tr><td><strong>National Code:</strong></td><td>${apt.nationalCode}</td></tr>
+                                    <tr><td><strong>Phone:</strong></td><td>${apt.phoneNumber || 'N/A'}</td></tr>
                                 </table>
                             </div>
                             <div class="col-md-6">
@@ -436,50 +522,94 @@ function loadAppointmentInfo(appointmentId) {
                 `;
                 $('#appointmentInfo').html(html);
                 
-                // Load disease diagnoses
-                loadDiseaseDiagnoses(apt.diseases || []);
-                loadMedicineDiagnoses(apt.medicines || []);
+                loadDiseases(apt.diseases || []);
                 loadVitalSigns(apt.vitals || []);
             }
         }
     });
 }
 
-function loadDiseaseDiagnoses(diseases) {
-    var container = $('#diseaseDiagnosisList');
+function loadDiseases(diseases) {
+    var container = $('#diseaseContainer');
     if (diseases && diseases.length > 0) {
-        var html = '<ul class="list-group">';
-        $.each(diseases, function(i, d) {
+        var html = '';
+        $.each(diseases, function(i, disease) {
+            var medicines = disease.medicines || [];
+            var medicineHtml = '';
+            if (medicines.length > 0) {
+                medicineHtml = '<ul class="list-group mb-2">';
+                $.each(medicines, function(j, med) {
+                    var effectDisplay = '';
+                    if (med.effectpercentage !== null && med.effectpercentage !== undefined) {
+                        effectDisplay = `<span class="badge bg-info ms-2">${med.effectpercentage}% effective</span>`;
+                    } else {
+                        effectDisplay = `<span class="badge bg-secondary ms-2">No feedback</span>`;
+                    }
+                    medicineHtml += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>${med.medicinename}</strong>
+                                ${med.description ? '<br><small>' + med.description + '</small>' : ''}
+                                ${effectDisplay}
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-info btn-feedback" 
+                                        data-medid="${med.meddiagid}" 
+                                        data-medname="${med.medicinename}"
+                                        data-effect="${med.effectpercentage || ''}">
+                                    <i class="bi bi-star"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger btn-delete-medicine" 
+                                        data-medid="${med.meddiagid}">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </div>
+                        </li>
+                    `;
+                });
+                medicineHtml += '</ul>';
+            } else {
+                medicineHtml = '<p class="text-muted small">No medicines prescribed</p>';
+            }
+            
             html += `
-                <li class="list-group-item">
-                    <strong>${d.diseasename || d.code}</strong>
-                    ${d.description ? '<br><small>' + d.description + '</small>' : ''}
-                </li>
+                <div class="card mb-3 border-danger">
+                    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                        <strong>${disease.diseasename || disease.code}</strong>
+                        <div>
+                            <button class="btn btn-sm btn-light btn-add-medicine" data-id="${disease.disdiagid}">
+                                <i class="bi bi-plus-circle"></i> Add Medicine
+                            </button>
+                            <button class="btn btn-sm btn-warning btn-edit-disease" data-id="${disease.disdiagid}">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger btn-delete-disease" data-id="${disease.disdiagid}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        ${disease.description ? '<p><strong>Description:</strong> ' + disease.description + '</p>' : ''}
+                        <h6>Prescribed Medicines:</h6>
+                        ${medicineHtml}
+                    </div>
+                </div>
             `;
         });
-        html += '</ul>';
         container.html(html);
     } else {
-        container.html('<p class="text-muted">No diseases diagnosed</p>');
-    }
-}
-
-function loadMedicineDiagnoses(medicines) {
-    var container = $('#medicineDiagnosisList');
-    if (medicines && medicines.length > 0) {
-        var html = '<ul class="list-group">';
-        $.each(medicines, function(i, m) {
-            html += `
-                <li class="list-group-item">
-                    <strong>${m.medicinename}</strong>
-                    ${m.description ? '<br><small>' + m.description + '</small>' : ''}
-                </li>
-            `;
+        container.html(`
+            <div class="text-center py-4">
+                <i class="bi bi-heart-pulse display-4 text-muted"></i>
+                <p class="mt-2">No diseases diagnosed for this appointment</p>
+                <button class="btn btn-danger btn-sm" id="addDiseaseBtn">
+                    <i class="bi bi-plus-circle"></i> Add Disease
+                </button>
+            </div>
+        `);
+        $('#addDiseaseBtn').on('click', function() {
+            $('#addDiseaseModal').modal('show');
         });
-        html += '</ul>';
-        container.html(html);
-    } else {
-        container.html('<p class="text-muted">No medicines prescribed</p>');
     }
 }
 
@@ -514,7 +644,6 @@ function loadVitalSigns(vitals) {
 }
 
 function loadPatientHistory(appointmentId) {
-    // First get patient ID from appointment
     $.ajax({
         url: '/doctor/api/appointment/' + appointmentId,
         method: 'GET',
@@ -615,7 +744,7 @@ function loadDiseaseCodes() {
         method: 'GET',
         success: function(response) {
             if (response.success) {
-                var selects = ['#ddIcdID', '#dhIcdID'];
+                var selects = ['#adIcdID', '#edIcdID', '#dhIcdID'];
                 $.each(selects, function(i, sel) {
                     var select = $(sel);
                     select.empty();
@@ -635,7 +764,7 @@ function loadMedicineCodes() {
         method: 'GET',
         success: function(response) {
             if (response.success) {
-                var selects = ['#mdIcdmID', '#mhIcdmID'];
+                var selects = ['#amIcdmID', '#mhIcdmID'];
                 $.each(selects, function(i, sel) {
                     var select = $(sel);
                     select.empty();
@@ -670,15 +799,72 @@ function loadVitalParameters() {
     });
 }
 
-function addDiseaseDiagnosis() {
+function openFeedbackModal(medDiagID, medName, effect) {
+    $('#fbMedDiagID').val(medDiagID);
+    $('#fbMedicineName').text(medName);
+    
+    var effectVal = effect || 50;
+    $('#fbEffectRange').val(effectVal);
+    $('#fbEffectValue').text(effectVal + '%');
+    
+    $('#fbMessage').addClass('d-none');
+    $('#feedbackModal').modal('show');
+}
+
+function saveFeedback() {
     var data = {
-        appoID: $('#ddAppoID').val(),
-        icdID: $('#ddIcdID').val(),
-        description: $('#ddDescription').val()
+        medDiagID: $('#fbMedDiagID').val(),
+        effectPercentage: parseInt($('#fbEffectRange').val())
+    };
+    
+    $.ajax({
+        url: '/doctor/api/feedback',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function(response) {
+            if (response.success) {
+                $('#feedbackModal').modal('hide');
+                loadAppointmentInfo($('#adAppoID').val());
+            } else {
+                showModalMessage('fb', 'Error: ' + response.error, 'danger');
+            }
+        },
+        error: function() {
+            showModalMessage('fb', 'Error saving feedback', 'danger');
+        }
+    });
+}
+
+function deleteFeedback() {
+    var medDiagID = $('#fbMedDiagID').val();
+    
+    $.ajax({
+        url: '/doctor/api/feedback/' + medDiagID,
+        method: 'DELETE',
+        success: function(response) {
+            if (response.success) {
+                $('#feedbackModal').modal('hide');
+                loadAppointmentInfo($('#adAppoID').val());
+            } else {
+                alert('Error: ' + response.error);
+            }
+        },
+        error: function() {
+            alert('Error deleting feedback');
+        }
+    });
+}
+
+function addDisease() {
+    var data = {
+        appoID: $('#adAppoID').val(),
+        icdID: $('#adIcdID').val(),
+        description: $('#adDescription').val()
     };
     
     if (!data.icdID) {
-        showModalMessage('dd', 'Please select a disease', 'danger');
+        showModalMessage('ad', 'Please select a disease', 'danger');
         return;
     }
     
@@ -689,28 +875,91 @@ function addDiseaseDiagnosis() {
         data: JSON.stringify(data),
         success: function(response) {
             if (response.success) {
-                $('#diseaseDiagnosisModal').modal('hide');
-                var appointmentId = $('#ddAppoID').val();
-                loadAppointmentInfo(appointmentId);
+                $('#addDiseaseModal').modal('hide');
+                loadAppointmentInfo($('#adAppoID').val());
             } else {
-                showModalMessage('dd', 'Error: ' + response.error, 'danger');
+                showModalMessage('ad', 'Error: ' + response.error, 'danger');
             }
         },
         error: function() {
-            showModalMessage('dd', 'Error adding disease diagnosis', 'danger');
+            showModalMessage('ad', 'Error adding disease', 'danger');
         }
     });
 }
 
-function addMedicineDiagnosis() {
+function editDisease(disDiagID) {
+    $.ajax({
+        url: '/doctor/api/disease/' + disDiagID + '/medicines',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                var disease = response.data;
+                $('#edDisDiagID').val(disDiagID);
+                $('#edIcdID').val(disease.icdid);
+                $('#edDescription').val(disease.description || '');
+                $('#editDiseaseModal').modal('show');
+            }
+        }
+    });
+}
+
+function updateDisease() {
+    var disDiagID = $('#edDisDiagID').val();
     var data = {
-        appoID: $('#mdAppoID').val(),
-        icdmID: $('#mdIcdmID').val(),
-        description: $('#mdDescription').val()
+        icdID: $('#edIcdID').val(),
+        description: $('#edDescription').val()
+    };
+    
+    if (!data.icdID) {
+        showModalMessage('ed', 'Please select a disease', 'danger');
+        return;
+    }
+    
+    $.ajax({
+        url: '/doctor/api/disease/diagnosis/' + disDiagID,
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function(response) {
+            if (response.success) {
+                $('#editDiseaseModal').modal('hide');
+                loadAppointmentInfo($('#adAppoID').val());
+            } else {
+                showModalMessage('ed', 'Error: ' + response.error, 'danger');
+            }
+        },
+        error: function() {
+            showModalMessage('ed', 'Error updating disease', 'danger');
+        }
+    });
+}
+
+function deleteDisease(disDiagID) {
+    $.ajax({
+        url: '/doctor/api/disease/diagnosis/' + disDiagID,
+        method: 'DELETE',
+        success: function(response) {
+            if (response.success) {
+                loadAppointmentInfo($('#adAppoID').val());
+            } else {
+                alert('Error: ' + response.error);
+            }
+        },
+        error: function() {
+            alert('Error deleting disease');
+        }
+    });
+}
+
+function addMedicine() {
+    var data = {
+        disDiagID: $('#amDisDiagID').val(),
+        icdmID: $('#amIcdmID').val(),
+        description: $('#amDescription').val()
     };
     
     if (!data.icdmID) {
-        showModalMessage('md', 'Please select a medicine', 'danger');
+        showModalMessage('am', 'Please select a medicine', 'danger');
         return;
     }
     
@@ -721,15 +970,31 @@ function addMedicineDiagnosis() {
         data: JSON.stringify(data),
         success: function(response) {
             if (response.success) {
-                $('#medicineDiagnosisModal').modal('hide');
-                var appointmentId = $('#mdAppoID').val();
-                loadAppointmentInfo(appointmentId);
+                $('#addMedicineModal').modal('hide');
+                loadAppointmentInfo($('#adAppoID').val());
             } else {
-                showModalMessage('md', 'Error: ' + response.error, 'danger');
+                showModalMessage('am', 'Error: ' + response.error, 'danger');
             }
         },
         error: function() {
-            showModalMessage('md', 'Error adding medicine', 'danger');
+            showModalMessage('am', 'Error adding medicine', 'danger');
+        }
+    });
+}
+
+function deleteMedicine(medDiagID) {
+    $.ajax({
+        url: '/doctor/api/medicine/diagnosis/' + medDiagID,
+        method: 'DELETE',
+        success: function(response) {
+            if (response.success) {
+                loadAppointmentInfo($('#adAppoID').val());
+            } else {
+                alert('Error: ' + response.error);
+            }
+        },
+        error: function() {
+            alert('Error removing medicine');
         }
     });
 }
@@ -758,8 +1023,7 @@ function addVitalSign() {
         success: function(response) {
             if (response.success) {
                 $('#vitalSignModal').modal('hide');
-                var appointmentId = $('#vsAppoID').val();
-                loadAppointmentInfo(appointmentId);
+                loadAppointmentInfo($('#vsAppoID').val());
             } else {
                 showModalMessage('vs', 'Error: ' + response.error, 'danger');
             }
@@ -790,8 +1054,7 @@ function addDiseaseHistory() {
         success: function(response) {
             if (response.success) {
                 $('#diseaseHistoryModal').modal('hide');
-                var patientId = $('#dhMID').val();
-                loadPatientHistoryForMID(patientId);
+                loadPatientHistory($('#adAppoID').val());
             } else {
                 showModalMessage('dh', 'Error: ' + response.error, 'danger');
             }
@@ -822,8 +1085,7 @@ function addMedicineHistory() {
         success: function(response) {
             if (response.success) {
                 $('#medicineHistoryModal').modal('hide');
-                var patientId = $('#mhMID').val();
-                loadPatientHistoryForMID(patientId);
+                loadPatientHistory($('#adAppoID').val());
             } else {
                 showModalMessage('mh', 'Error: ' + response.error, 'danger');
             }
@@ -853,30 +1115,13 @@ function addDrugHistory() {
         success: function(response) {
             if (response.success) {
                 $('#drugHistoryModal').modal('hide');
-                var patientId = $('#drugMID').val();
-                loadPatientHistoryForMID(patientId);
+                loadPatientHistory($('#adAppoID').val());
             } else {
                 showModalMessage('drug', 'Error: ' + response.error, 'danger');
             }
         },
         error: function() {
             showModalMessage('drug', 'Error adding drug history', 'danger');
-        }
-    });
-}
-
-function loadPatientHistoryForMID(mid) {
-    // Get patient ID from MID
-    $.ajax({
-        url: '/doctor/api/appointment/' + $('#ddAppoID').val(),
-        method: 'GET',
-        success: function(response) {
-            if (response.success) {
-                var patientId = response.data.patient_id;
-                loadDiseaseHistory(patientId);
-                loadMedicineHistory(patientId);
-                loadDrugHistory(patientId);
-            }
         }
     });
 }

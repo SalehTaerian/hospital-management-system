@@ -13,6 +13,7 @@ from app.routes.request_routes import request_bp
 from app.routes.admission_routes import admission_bp
 from app.routes.doctor_routes import doctor_bp
 from app.routes.billing_routes import billing_bp
+from app.routes.analytics_routes import analytics_bp
 import logging
 
 def create_app():
@@ -33,6 +34,7 @@ def create_app():
     app.register_blueprint(admission_bp)
     app.register_blueprint(doctor_bp)
     app.register_blueprint(billing_bp)
+    app.register_blueprint(analytics_bp)
     
     
     logging.basicConfig(level=logging.INFO)

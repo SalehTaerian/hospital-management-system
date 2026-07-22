@@ -2,7 +2,6 @@ from app.database.queries.auth_queries import *
 from flask import session
 
 def is_logged_in():
-    print("I am: ", session.get('user_role'), session.get('access_level'))
     return 'user_id' in session
 
 def get_current_user():
