@@ -55,7 +55,8 @@ def dashboard():
     numberOfVisitsPerHour = making_chart(visits_per_hour_service , "appointmenttime" ,"patientcount")
     numberOfVisitsPerDay = making_chart(visits_per_day_service , "appointmenttime" ,"patientcount")
     mostDisease = making_chart(get_most_diseases_service , "diseasename" ,"diseasecount")
-    return render_template('staff/dashboard.html' , occupiedBedChart = occupiedBedChart ,workingPressureChart = workingPressureChart,avgAdmissionTimeChart = avgAdmissionTimeChart,numberOfVisitsPerHour = numberOfVisitsPerHour ,numberOfVisitsPerDay = numberOfVisitsPerDay,mostDisease =mostDisease)
+    mostUsedMedicine = making_chart(get_most_used_medicine_service , "medicinename" ,"medicinecount")
+    return render_template('staff/dashboard.html' , occupiedBedChart = occupiedBedChart ,workingPressureChart = workingPressureChart,avgAdmissionTimeChart = avgAdmissionTimeChart,numberOfVisitsPerHour = numberOfVisitsPerHour ,numberOfVisitsPerDay = numberOfVisitsPerDay,mostDisease =mostDisease,mostUsedMedicine = mostUsedMedicine)
 
 
 @staff_bp.route("/patients")

@@ -891,3 +891,16 @@ def get_most_diseases():
     """
     results = DatabaseConnection.execute_query(query, fetch_all=True, fetch_dict=True)
     return results
+
+def get_most_used_medicine():
+    query = """
+        SELECT i.medicineName , count(*)  AS medicinecount
+        FROM medicalRecord m
+        JOIN medicineRecord mr ON mr.mID = m.mID
+        JOIN icdmCode i ON i.icdmID = mr.icdmID
+        GROUP BY i.medicineName
+        ORDER BY medicinecount DESC
+        LIMIT 5
+    """
+    results = DatabaseConnection.execute_query(query, fetch_all=True, fetch_dict=True)
+    return results

@@ -222,3 +222,5 @@ def visits_per_day_service():
 def get_most_diseases_service():
     return get_most_diseases()
 
+def get_most_used_medicine_service():
+    return get_most_used_medicine()
