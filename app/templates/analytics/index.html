@@ -8,42 +8,47 @@
         <div class="card bg-primary text-white shadow">
             <div class="card-body py-4">
                 <h2 class="mb-0"><i class="bi bi-graph-up"></i> Analytics Dashboard</h2>
-                <p class="mb-0 mt-2">Disease abundance and medicine effectiveness analysis</p>
+                <p class="mb-0 mt-2">Hospital performance metrics and analytics</p>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row mt-4" id="statsContainer">
+<!-- New Metrics Cards -->
+<div class="row mt-4" id="metricsContainer">
     <div class="col-md-3">
-        <div class="card text-white bg-info">
+        <div class="card text-white bg-info shadow">
             <div class="card-body text-center">
-                <h3 id="totalPatients">-</h3>
-                <p class="mb-0">Total Patients</p>
+                <h3 id="avgWaitingTime">-</h3>
+                <p class="mb-0"><i class="bi bi-clock"></i> Avg Waiting Time (min)</p>
+                <small class="text-white-50" id="waitingTimeRange"></small>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-white bg-success">
+        <div class="card text-white bg-warning shadow">
             <div class="card-body text-center">
-                <h3 id="totalDiseases">-</h3>
-                <p class="mb-0">Diseases</p>
+                <h3 id="bedOccupancy">-</h3>
+                <p class="mb-0"><i class="bi bi-hospital"></i> Bed Occupancy</p>
+                <small class="text-white-50" id="bedOccupancyDetails"></small>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-white bg-warning">
+        <div class="card text-white bg-danger shadow">
             <div class="card-body text-center">
-                <h3 id="totalDiagnoses">-</h3>
-                <p class="mb-0">Diagnoses</p>
+                <h3 id="readmissionRate">-</h3>
+                <p class="mb-0"><i class="bi bi-arrow-repeat"></i> 30-Day Readmission</p>
+                <small class="text-white-50" id="readmissionDetails"></small>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-white bg-danger">
+        <div class="card text-white bg-success shadow">
             <div class="card-body text-center">
-                <h3 id="totalPrescriptions">-</h3>
-                <p class="mb-0">Prescriptions</p>
+                <h3 id="avgAdmissionTime">-</h3>
+                <p class="mb-0"><i class="bi bi-calendar-check"></i> Avg Admission Time</p>
+                <small class="text-white-50" id="admissionTimeDetails"></small>
             </div>
         </div>
     </div>
@@ -78,6 +83,40 @@
     </div>
 </div>
 
+<!-- Admission Time by Department -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-building"></i> Average Admission Time by Department</h5>
+            </div>
+            <div class="card-body" id="admissionByDepartmentContainer">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p>Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Waiting Time Trend -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Waiting Time Trend (Last 30 Days)</h5>
+            </div>
+            <div class="card-body" id="waitingTimeTrendContainer">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p>Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row mt-4">
     <div class="col-12">
         <div class="card shadow">
@@ -101,22 +140,72 @@
 {% block scripts %}
 <script>
 $(document).ready(function() {
-    loadStats();
+    loadAllMetrics();
     loadTopDiseases();
     loadMedicineSummary();
     loadDiseaseAbundance();
+    loadAdmissionByDepartment();
+    loadWaitingTimeTrend();
 });
 
-function loadStats() {
+function loadAllMetrics() {
+    // Load Average Waiting Time
     $.ajax({
-        url: '/analytics/api/stats',
+        url: '/analytics/api/waiting-time',
         method: 'GET',
         success: function(response) {
-            if (response.success) {
-                $('#totalPatients').text(response.data.total_patients || 0);
-                $('#totalDiseases').text(response.data.total_diseases || 0);
-                $('#totalDiagnoses').text(response.data.total_diagnoses || 0);
-                $('#totalPrescriptions').text(response.data.total_prescriptions || 0);
+            if (response.success && response.data) {
+                var avg = response.data.avg_waiting_minutes || 0;
+                var min = response.data.min_waiting_minutes || 0;
+                var max = response.data.max_waiting_minutes || 0;
+                $('#avgWaitingTime').text(Math.round(avg));
+                $('#waitingTimeRange').text(`Range: ${Math.round(min)} - ${Math.round(max)} min (${response.data.total_appointments || 0} appointments)`);
+            }
+        }
+    });
+
+    // Load Bed Occupancy Rate
+    $.ajax({
+        url: '/analytics/api/bed-occupancy',
+        method: 'GET',
+        success: function(response) {
+            if (response.success && response.data) {
+                var rate = response.data.occupancy_rate || 0;
+                var occupied = response.data.occupied_beds || 0;
+                var total = response.data.total_beds || 0;
+                var color = rate >= 80 ? 'danger' : rate >= 60 ? 'warning' : 'success';
+                $('#bedOccupancy').html(`<span class="text-${color}">${rate}%</span>`);
+                $('#bedOccupancyDetails').text(`${occupied}/${total} beds occupied`);
+            }
+        }
+    });
+
+    // Load Readmission Rate
+    $.ajax({
+        url: '/analytics/api/readmission-rate',
+        method: 'GET',
+        success: function(response) {
+            if (response.success && response.data) {
+                var rate = response.data.readmission_rate || 0;
+                var readmitted = response.data.readmitted_patients || 0;
+                var total = response.data.total_patients || 0;
+                var color = rate <= 10 ? 'success' : rate <= 20 ? 'warning' : 'danger';
+                $('#readmissionRate').html(`<span class="text-${color}">${rate}%</span>`);
+                $('#readmissionDetails').text(`${readmitted}/${total} patients readmitted`);
+            }
+        }
+    });
+
+    // Load Average Admission Time
+    $.ajax({
+        url: '/analytics/api/admission-time',
+        method: 'GET',
+        success: function(response) {
+            if (response.success && response.data) {
+                var hours = response.data.avg_hours || 0;
+                var days = response.data.avg_days || 0;
+                $('#avgAdmissionTime').text(Math.round(hours) + 'h');
+                $('#admissionTimeDetails').text(`~${Math.round(days)} days (${response.data.total_admissions || 0} admissions)`);
             }
         }
     });
@@ -238,6 +327,100 @@ function loadDiseaseAbundance() {
                 container.html(html);
             } else {
                 container.html('<p class="text-muted">No disease data available</p>');
+            }
+        }
+    });
+}
+
+function loadAdmissionByDepartment() {
+    $.ajax({
+        url: '/analytics/api/admission-time/departments',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#admissionByDepartmentContainer');
+            if (response.success && response.data && response.data.length > 0) {
+                var maxHours = Math.max(...response.data.map(d => d.avg_hours || 0));
+                var html = `
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Department</th>
+                                    <th>Admissions</th>
+                                    <th>Avg Hours</th>
+                                    <th>Avg Days</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                $.each(response.data, function(i, d) {
+                    var percentage = maxHours > 0 ? ((d.avg_hours || 0) / maxHours * 100) : 0;
+                    var color = (d.avg_hours || 0) > 48 ? 'danger' : (d.avg_hours || 0) > 24 ? 'warning' : 'success';
+                    html += `
+                        <tr>
+                            <td><strong>${d.department_name}</strong></td>
+                            <td>${d.admission_count}</td>
+                            <td>${d.avg_hours}</td>
+                            <td>${d.avg_days}</td>
+                        </tr>
+                    `;
+                });
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                container.html(html);
+            } else {
+                container.html('<p class="text-muted">No admission data available by department</p>');
+            }
+        }
+    });
+}
+
+function loadWaitingTimeTrend() {
+    $.ajax({
+        url: '/analytics/api/waiting-time/trend?days=30',
+        method: 'GET',
+        success: function(response) {
+            var container = $('#waitingTimeTrendContainer');
+            if (response.success && response.data && response.data.length > 0) {
+                var html = `
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Appointments</th>
+                                    <th>Avg Waiting (min)</th>
+                                    <th>Min (min)</th>
+                                    <th>Max (min)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                $.each(response.data.slice(0, 15), function(i, d) {
+                    var avg = d.avg_waiting_minutes || 0;
+                    var color = avg > 30 ? 'danger' : avg > 15 ? 'warning' : 'success';
+                    html += `
+                        <tr>
+                            <td>${d.appointment_date}</td>
+                            <td>${d.total_appointments}</td>
+                            <td><span class="badge bg-${color}">${Math.round(avg)}</span></td>
+                            <td>${Math.round(d.min_waiting_minutes || 0)}</td>
+                            <td>${Math.round(d.max_waiting_minutes || 0)}</td>
+                            
+                        </tr>
+                    `;
+                });
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                container.html(html);
+            } else {
+                container.html('<p class="text-muted">No waiting time trend data available</p>');
             }
         }
     });

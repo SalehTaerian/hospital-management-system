@@ -160,3 +160,190 @@ def get_overall_statistics():
         fetch_one=True,
         fetch_dict=True
     )
+    
+def get_average_waiting_time():
+    query = """
+        SELECT 
+            AVG(EXTRACT(EPOCH FROM (a.enterTime - a.reserveTime)) / 60) as avg_waiting_minutes,
+            MIN(EXTRACT(EPOCH FROM (a.enterTime - a.reserveTime)) / 60) as min_waiting_minutes,
+            MAX(EXTRACT(EPOCH FROM (a.enterTime - a.reserveTime)) / 60) as max_waiting_minutes,
+            COUNT(*) as total_appointments
+        FROM appointment a
+        WHERE a.enterTime IS NOT NULL 
+        AND a.reserveTime IS NOT NULL
+        AND a.status = 'Completed'
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        fetch_one=True,
+        fetch_dict=True
+    )
+
+def get_bed_occupancy_rate():
+    query = """
+        WITH latest_bed_status AS (
+            SELECT DISTINCT ON (bedID) 
+                bedID, 
+                status
+            FROM bedInfo
+            ORDER BY bedID, startTimestamp DESC
+        ),
+        bed_counts AS (
+            SELECT 
+                COUNT(*) as total_beds,
+                COUNT(CASE WHEN status = 'Occupied' THEN 1 END) as occupied_beds
+            FROM latest_bed_status
+        )
+        SELECT 
+            total_beds,
+            occupied_beds,
+            CASE 
+                WHEN total_beds > 0 THEN ROUND((occupied_beds::DECIMAL / total_beds) * 100, 2)
+                ELSE 0
+            END as occupancy_rate
+        FROM bed_counts
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        fetch_one=True,
+        fetch_dict=True
+    )
+
+def get_readmission_rate_30_days():
+    query = """
+        WITH patient_admissions AS (
+            SELECT 
+                mr.pID,
+                a.admID,
+                a.createdAt,
+                ROW_NUMBER() OVER (PARTITION BY mr.pID ORDER BY a.createdAt) as admission_number
+            FROM admission a
+            JOIN medicalRecord mr ON a.mID = mr.mID
+        ),
+        readmissions AS (
+            SELECT 
+                p1.pID,
+                p1.admID as first_admission,
+                p2.admID as readmission,
+                p1.createdAt as first_date,
+                p2.createdAt as readmission_date,
+                EXTRACT(DAY FROM (p2.createdAt - p1.createdAt)) as days_between
+            FROM patient_admissions p1
+            JOIN patient_admissions p2 ON p1.pID = p2.pID 
+                AND p2.admission_number = p1.admission_number + 1
+                AND p2.createdAt - p1.createdAt <= INTERVAL '30 days'
+            WHERE p1.admission_number = 1
+        ),
+        all_patients AS (
+            SELECT COUNT(DISTINCT pID) as total_patients
+            FROM patient
+        ),
+        readmitted_patients AS (
+            SELECT COUNT(DISTINCT pID) as readmitted_count
+            FROM readmissions
+        )
+        SELECT 
+            COALESCE(rp.readmitted_count, 0) as readmitted_patients,
+            ap.total_patients,
+            CASE 
+                WHEN ap.total_patients > 0 THEN ROUND((COALESCE(rp.readmitted_count, 0)::DECIMAL / ap.total_patients) * 100, 2)
+                ELSE 0
+            END as readmission_rate
+        FROM all_patients ap
+        CROSS JOIN readmitted_patients rp
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        fetch_one=True,
+        fetch_dict=True
+    )
+
+def get_average_admission_time():
+    query = """
+        WITH admission_durations AS (
+            SELECT 
+                a.admID,
+                a.createdAt as admission_start,
+                COALESCE(a.endTime, CURRENT_TIMESTAMP) as admission_end,
+                EXTRACT(EPOCH FROM (COALESCE(a.endTime, CURRENT_TIMESTAMP) - a.createdAt)) / 3600 as hours_admitted,
+                EXTRACT(EPOCH FROM (COALESCE(a.endTime, CURRENT_TIMESTAMP) - a.createdAt)) / 86400 as days_admitted
+            FROM admission a
+            WHERE a.createdAt IS NOT NULL
+        )
+        SELECT 
+            COUNT(*) as total_admissions,
+            ROUND(AVG(hours_admitted), 2) as avg_hours,
+            ROUND(AVG(days_admitted), 2) as avg_days,
+            ROUND(MIN(hours_admitted), 2) as min_hours,
+            ROUND(MAX(hours_admitted), 2) as max_hours
+        FROM admission_durations
+        WHERE hours_admitted > 0
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        fetch_one=True,
+        fetch_dict=True
+    )
+
+def get_admission_time_by_department():
+    query = """
+        WITH latest_bedinfo AS (
+            SELECT DISTINCT ON (bedID)
+                bedID,
+                roomID,
+                status,
+                startTimestamp
+            FROM bedInfo
+            ORDER BY bedID, startTimestamp DESC
+        ),
+        admission_durations AS (
+            SELECT 
+                a.admID,
+                a.createdAt as admission_start,
+                COALESCE(a.endTime, CURRENT_TIMESTAMP) as admission_end,
+                d.name as department_name,
+                EXTRACT(EPOCH FROM (COALESCE(a.endTime, CURRENT_TIMESTAMP) - a.createdAt)) / 3600 as hours_admitted
+            FROM admission a
+            JOIN bedInfo bi ON a.admID = bi.asgAdmID
+            JOIN room r ON bi.roomID = r.roomID
+            JOIN department d ON r.departID = d.departID
+            WHERE a.createdAt IS NOT NULL
+        )
+        SELECT 
+            department_name,
+            COUNT(*) as admission_count,
+            ROUND(AVG(hours_admitted), 2) as avg_hours,
+            ROUND(AVG(hours_admitted) / 24, 2) as avg_days
+        FROM admission_durations
+        WHERE hours_admitted > 0
+        GROUP BY department_name
+        ORDER BY avg_hours DESC
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        fetch_all=True,
+        fetch_dict=True
+    )
+
+def get_daily_waiting_time_trend(days=30):
+    query = """
+        SELECT 
+            DATE(a.date) as appointment_date,
+            COUNT(*) as total_appointments,
+            AVG(EXTRACT(EPOCH FROM (a.enterTime - a.reserveTime)) / 60) as avg_waiting_minutes,
+            MIN(EXTRACT(EPOCH FROM (a.enterTime - a.reserveTime)) / 60) as min_waiting_minutes,
+            MAX(EXTRACT(EPOCH FROM (a.enterTime - a.reserveTime)) / 60) as max_waiting_minutes
+        FROM appointment a
+        WHERE a.enterTime IS NOT NULL 
+        AND a.reserveTime IS NOT NULL
+        AND a.status = 'Completed'
+        AND a.date >= CURRENT_DATE - INTERVAL '%s days'
+        GROUP BY DATE(a.date)
+        ORDER BY appointment_date DESC
+    """
+    return DatabaseConnection.execute_query(
+        query,
+        (days,),
+        fetch_all=True,
+        fetch_dict=True
+    )

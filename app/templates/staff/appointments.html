@@ -258,16 +258,36 @@ function loadTodayAppointments() {
                     };
                     var color = statusColors[apt.status] || 'secondary';
                     
+                    // Calculate waiting time properly
+                    var waitingDisplay = '<span class="badge bg-secondary">-</span>';
+                    if (apt.reservetime) {
+                        var reserveTime = new Date(apt.reservetime);
+                        var now = new Date();
+                        
+                        // If enterTime exists, use it for completed appointments
+                        var endTime = apt.entertime ? new Date(apt.entertime) : now;
+                        var diffMs = endTime - reserveTime;
+                        var diffMinutes = Math.round(diffMs / (1000 * 60));
+                        
+                        if (apt.status === 'Completed' && apt.entertime) {
+                            // Show actual waiting time for completed appointments
+                            waitingDisplay = `<span class="badge bg-success">⏱ ${diffMinutes} min</span>`;
+                        } else if (apt.status === 'Scheduled') {
+                            // Show waiting time for scheduled appointments (since reservation)
+                            waitingDisplay = `<span class="badge bg-warning text-dark">⏱ ${diffMinutes} min</span>`;
+                        } else if (apt.status === 'Cancelled' || apt.status === 'No Show') {
+                            waitingDisplay = `<span class="badge bg-secondary">-</span>`;
+                        } else {
+                            waitingDisplay = `<span class="badge bg-info">⏱ ${diffMinutes} min</span>`;
+                        }
+                    }
+                    
                     html += `
                         <tr>
                             <td><strong>${apt.time}</strong></td>
                             <td>${apt.patient_name}</td>
                             <td>${apt.doctor_name}</td>
-                            <td>
-                                ${apt.waiting_minutes !== null && apt.waiting_minutes !== undefined ? 
-                                    `<span class="badge bg-warning text-dark">⏱ ${apt.waiting_minutes} min</span>` : 
-                                    '<span class="badge bg-secondary">-</span>'}
-                            </td>
+                            <td>${waitingDisplay}</td>
                             <td><span class="badge bg-${color}">${apt.status}</span></td>
                             <td>
                                 <button class="btn btn-sm btn-outline-primary" 
@@ -278,7 +298,9 @@ function loadTodayAppointments() {
                                     `<button class="btn btn-sm btn-success mark-enter-btn" data-appoid="${apt.appoid}">
                                         <i class="bi bi-door-open"></i> Enter
                                     </button>` : 
-                                    ''}
+                                    apt.status === 'Completed' ?
+                                    `<span class="badge bg-success"><i class="bi bi-check-circle"></i> Completed</span>` :
+                                    `<span class="badge bg-secondary">${apt.status}</span>`}
                             </td>
                         </tr>
                     `;
@@ -296,19 +318,64 @@ function loadTodayAppointments() {
 }
 
 function markPatientEntered(appoId) {
+    if (!confirm('Mark this patient as entered and complete the appointment?')) {
+        return;
+    }
+    
+    // Disable the button to prevent double clicking
+    $('.mark-enter-btn[data-appoid="' + appoId + '"]').prop('disabled', true).html('<i class="bi bi-hourglass-split"></i> Processing...');
+    
+    // First, update the enter time
     $.ajax({
         url: '/staff/api/appointments/' + appoId + '/enter',
         method: 'POST',
+        contentType: 'application/json',
         success: function(response) {
             if (response.success) {
-                alert('✅ Patient marked as entered!');
-                loadTodayAppointments();
+                // Then update the status to Completed
+                $.ajax({
+                    url: '/staff/api/appointments/' + appoId + '/status',
+                    method: 'PUT',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ status: 'Completed' }),
+                    success: function(statusResponse) {
+                        if (statusResponse.success) {
+                            // Reload the appointments to reflect changes
+                            loadTodayAppointments();
+                            // Show success message briefly
+                            showMessage('✅ Patient entered and appointment completed!', 'success');
+                            setTimeout(function() {
+                                $('#formMessage').addClass('d-none');
+                            }, 3000);
+                        } else {
+                            alert('❌ Error updating status: ' + (statusResponse.error || 'Unknown error'));
+                            // Re-enable the button
+                            $('.mark-enter-btn[data-appoid="' + appoId + '"]').prop('disabled', false).html('<i class="bi bi-door-open"></i> Enter');
+                        }
+                    },
+                    error: function(xhr) {
+                        var error = 'Error updating status';
+                        try {
+                            var response = JSON.parse(xhr.responseText);
+                            error = response.error || error;
+                        } catch(e) {}
+                        alert('❌ ' + error);
+                        $('.mark-enter-btn[data-appoid="' + appoId + '"]').prop('disabled', false).html('<i class="bi bi-door-open"></i> Enter');
+                    }
+                });
             } else {
-                alert('❌ Error: ' + response.error);
+                alert('❌ Error marking enter time: ' + (response.error || 'Unknown error'));
+                $('.mark-enter-btn[data-appoid="' + appoId + '"]').prop('disabled', false).html('<i class="bi bi-door-open"></i> Enter');
             }
         },
-        error: function() {
-            alert('❌ Error marking patient as entered');
+        error: function(xhr) {
+            var error = 'Error marking enter time';
+            try {
+                var response = JSON.parse(xhr.responseText);
+                error = response.error || error;
+            } catch(e) {}
+            alert('❌ ' + error);
+            $('.mark-enter-btn[data-appoid="' + appoId + '"]').prop('disabled', false).html('<i class="bi bi-door-open"></i> Enter');
         }
     });
 }

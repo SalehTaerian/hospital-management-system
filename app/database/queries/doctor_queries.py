@@ -48,7 +48,6 @@ def get_doctor_appointments(doctor_id):
             a.time,
             a.status,
             a.isOnlineReserved,
-            a.createdAt,
             a.followID,
             p.pID as patient_id,
             p.firstName || ' ' || p.lastName as patient_name,
