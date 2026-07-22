@@ -719,7 +719,7 @@ def get_occupied_beds():
         FROM department d
         JOIN room r ON d.departID = r.departID
         JOIN bedInfo bi ON bi.roomID = r.roomID
-        WHERE bi.status = 'Occupied' AND
+        WHERE bi.status = 'occupied' AND
         bi.endTime = (
             SELECT MAX(endTime)
             FROM bedInfo bi2
@@ -727,6 +727,7 @@ def get_occupied_beds():
         )
         GROUP BY d.name
         ORDER BY occupied DESC
+        LIMIT 5
     """
     results = DatabaseConnection.execute_query(query, fetch_all=True, fetch_dict=True)
     return results
@@ -739,6 +740,7 @@ def working_pressure():
         v_appo_pre.name = v_appo_pre_staff.name FULL JOIN v_get_admission_working_pressure_for_doctors v_adm_pre_doc ON v_appo_pre_staff.name = v_adm_pre_doc.name
         FULL JOIN v_get_admission_working_pressure_for_staff v_adm_pre_staff ON v_adm_pre_doc.name = v_adm_pre_staff.name FULL JOIN v_get_surgery_working_pressure v_surg_pre
         ON v_adm_pre_staff.name = v_surg_pre.name 
+        LIMIT 5
     """
     results = DatabaseConnection.execute_query(query, fetch_all=True, fetch_dict=True)
     return results
@@ -748,7 +750,7 @@ def avg_admission_time():
     query = """
         WITH admissionTimeTABLE AS
         (
-        SELECT b.asgAdmID , d.name , MAX(b.endTime) - MIN(b.startTimestamp) AS admissionTime
+        SELECT b.asgAdmID , d.name , EXTRACT(EPOCH FROM (MAX(b.endTime) - MIN(b.startTimestamp)))/60 AS admissionTime
         FROM department d JOIN room r ON r.departID = d.departID
         JOIN bedInfo b ON b.roomID = r.roomID
         GROUP BY asgAdmID , d.name
@@ -756,6 +758,7 @@ def avg_admission_time():
         SELECT name , AVG(admissionTime) AS avgAdmissionTime
         FROM admissionTimeTABLE
         GROUP BY name
+        LIMIT 5
     """
     results = DatabaseConnection.execute_query(query, fetch_all=True, fetch_dict=True)
     return results
@@ -763,7 +766,7 @@ def avg_admission_time():
 
 def visits_per_hour():
     query = """
-        SELECT DATE_TRUNC('hour',time)-(EXTRACT(hour FROM time)::int % 2)*INTERVAL '1 hour' AS appointmentTime,COUNT(*) AS patientCount
+        SELECT TO_CHAR(DATE_TRUNC('hour',time)-(EXTRACT(hour FROM time)::int % 2)*INTERVAL '1 hour','HH24:MI') AS appointmentTime,COUNT(*) AS patientCount
         FROM appointment
         GROUP BY DATE_TRUNC('hour',time)-(EXTRACT(hour FROM time)::int % 2)*INTERVAL '1 hour'
     """
@@ -774,7 +777,7 @@ def visits_per_day():
     query = """
         SELECT TO_CHAR(date , 'Day') AS appointmentTime,COUNT(*) AS patientCount
         FROM appointment
-        GROUP BY DATE_TRUNC(date , 'Day')
+        GROUP BY TO_CHAR(date , 'Day')
     """
     results = DatabaseConnection.execute_query(query, fetch_all=True, fetch_dict=True)
     return results
@@ -874,4 +877,17 @@ def get_appointments_with_waiting_time(doctor_id=None, patient_id=None):
         if 'waiting_minutes' in row and row['waiting_minutes']:
             row['waiting_minutes'] = round(float(row['waiting_minutes']), 2)
     
+    return results
+
+def get_most_diseases():
+    query = """
+        SELECT i.diseaseName , count(*)  AS diseasecount
+        FROM medicalRecord m
+        JOIN diseaseRecord d ON d.mID = m.mID
+        JOIN icdCode i ON i.icdID = d.icdID
+        GROUP BY i.diseaseName
+        ORDER BY diseasecount DESC
+        LIMIT 5
+    """
+    results = DatabaseConnection.execute_query(query, fetch_all=True, fetch_dict=True)
     return results

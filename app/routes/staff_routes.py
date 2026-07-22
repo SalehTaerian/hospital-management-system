@@ -32,7 +32,7 @@ def making_chart(func, xParam, yParam):
     parameters = func()
     names = [item[xParam] for item in parameters]
     values = [item[yParam] for item in parameters]
-    plt.figure()
+    plt.figure(figsize=(12,6))
     plt.bar(names, values)
     plt.title(f"{yParam} by {xParam}")
     plt.xlabel(xParam)
@@ -50,12 +50,12 @@ def dashboard():
     if not staff_login_required():
         return redirect("/staff-login")
     occupiedBedChart = making_chart(get_occupied_beds_by_department , "name" ,"occupied")
-    workingPressureChart = making_chart(working_pressure_service , "name" ,"workingPressure")
-    avgAdmissionTimeChart = making_chart(avg_admission_time_service , "name" ,"avgAdmissionTime")
-    numberOfVisitsPerHour = making_chart(visits_per_hour_service , "appointmentTime" ,"patientCount")
-    numberOfVisitsPerDay = making_chart(visits_per_day_service , "appointmentTime" ,"patientCount")
-    return render_template('staff/dashboard.html' , occupiedBedChart = occupiedBedChart ,workingPressureChart = workingPressureChart,avgAdmissionTimeChart = avgAdmissionTimeChart,numberOfVisitsPerHour = numberOfVisitsPerHour ,numberOfVisitsPerDay = numberOfVisitsPerDay)
-    # return render_template("staff/dashboard.html")
+    workingPressureChart = making_chart(working_pressure_service , "name" ,"workingpressure")
+    avgAdmissionTimeChart = making_chart(avg_admission_time_service , "name" ,"avgadmissiontime")
+    numberOfVisitsPerHour = making_chart(visits_per_hour_service , "appointmenttime" ,"patientcount")
+    numberOfVisitsPerDay = making_chart(visits_per_day_service , "appointmenttime" ,"patientcount")
+    mostDisease = making_chart(get_most_diseases_service , "diseasename" ,"diseasecount")
+    return render_template('staff/dashboard.html' , occupiedBedChart = occupiedBedChart ,workingPressureChart = workingPressureChart,avgAdmissionTimeChart = avgAdmissionTimeChart,numberOfVisitsPerHour = numberOfVisitsPerHour ,numberOfVisitsPerDay = numberOfVisitsPerDay,mostDisease =mostDisease)
 
 
 @staff_bp.route("/patients")
